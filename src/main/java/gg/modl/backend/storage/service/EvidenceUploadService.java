@@ -1,6 +1,7 @@
 package gg.modl.backend.storage.service;
 
 import gg.modl.backend.database.mongo.repository.PlayerMongoRepository;
+import gg.modl.backend.infrastructure.util.UuidUtil;
 import gg.modl.backend.player.data.Player;
 import gg.modl.backend.player.service.PlayerDataUtils;
 import gg.modl.backend.player.service.PunishmentEvidenceService;
@@ -42,7 +43,7 @@ public class EvidenceUploadService {
             return TokenValidationResult.invalid();
         }
 
-        Player player = playerRepository.findByMinecraftUuid(uploadToken.serverDatabaseName(), normalizeUuid(uploadToken.playerUuid()))
+        Player player = playerRepository.findByMinecraftUuid(uploadToken.serverDatabaseName(), UuidUtil.normalizeUuid(uploadToken.playerUuid()))
             .orElse(null);
         String playerName = player != null ? PlayerDataUtils.extractLatestUsername(player.getUsernames()) : "Unknown";
 
@@ -265,7 +266,4 @@ public class EvidenceUploadService {
         }
     }
 
-    private static String normalizeUuid(String value) {
-        return value == null ? null : value.toLowerCase(java.util.Locale.ROOT);
-    }
 }

@@ -13,8 +13,11 @@ import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,15 +28,15 @@ public class AdminAuthService {
     private final AdminUserMongoRepository adminUserRepository;
     private final SessionService sessionService;
 
-    public Optional<AdminUser> findByEmail(String email) {
+    public @NotNull Optional<AdminUser> findByEmail(@NotNull String email) {
         return adminUserRepository.findByEmailIgnoreCase(email);
     }
 
-    public void updateLastActivity(String email, String clientIp) {
+    public void updateLastActivity(@NotNull String email, @Nullable String clientIp) {
         adminUserRepository.updateLastActivity(email, clientIp, new Date());
     }
 
-    public Optional<AdminSession> getAuthenticatedSession(HttpServletRequest request) {
+    public @NotNull Optional<AdminSession> getAuthenticatedSession(@NotNull HttpServletRequest request) {
         String sessionId = extractSessionId(request);
         if (sessionId == null) {
             return Optional.empty();
@@ -54,7 +57,7 @@ public class AdminAuthService {
             .map(admin -> new AdminSession(admin.getId(), session.getEmail(), session.getCreatedAt()));
     }
 
-    public String extractSessionId(HttpServletRequest request) {
+    public @Nullable String extractSessionId(@NotNull HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
         if (cookies == null) {
             return null;
@@ -67,7 +70,7 @@ public class AdminAuthService {
         return null;
     }
 
-    public Set<String> extractSessionIds(HttpServletRequest request) {
+    public @NotNull Set<String> extractSessionIds(@NotNull HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
         if (cookies == null) {
             return Set.of();
@@ -77,7 +80,7 @@ public class AdminAuthService {
             .filter(cookie -> RESTSecurityRole.ADMIN_SESSION_COOKIE.equals(cookie.getName()))
             .map(Cookie::getValue)
             .filter(value -> value != null && !value.isBlank())
-            .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+            .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     public boolean isAdminSessionExpired(AuthSessionData session) {

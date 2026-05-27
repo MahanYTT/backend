@@ -5,12 +5,12 @@ import gg.modl.backend.admin.dto.request.CreateSystemLogRequest;
 import gg.modl.backend.admin.dto.request.ResolveLogRequest;
 import gg.modl.backend.database.mongo.repository.GlobalMongoAdminRepository;
 import gg.modl.backend.database.mongo.repository.ServerMongoRepository;
-import gg.modl.backend.database.mongo.repository.SystemLogMongoRepository;
 import gg.modl.backend.database.mongo.repository.ServerMongoRepository.MonitoringServerStats;
+import gg.modl.backend.database.mongo.repository.SystemLogMongoRepository;
 import gg.modl.backend.database.mongo.repository.SystemLogMongoRepository.MonitoringLogStats;
-import gg.modl.backend.server.data.ProvisioningStatus;
 import gg.modl.backend.infrastructure.util.DateRangeUtil;
 import gg.modl.backend.infrastructure.util.PaginationHelper;
+import gg.modl.backend.server.data.ProvisioningStatus;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -22,6 +22,8 @@ import java.util.Objects;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -156,7 +158,7 @@ public class AdminMonitoringService {
         );
     }
 
-    public SystemLog createLog(CreateSystemLogRequest request) {
+    public @NotNull SystemLog createLog(@NotNull CreateSystemLogRequest request) {
         SystemLog logData = request.toSystemLog();
         logData.setTimestamp(new Date());
         return systemLogRepository.saveEntity(logData);
@@ -178,7 +180,7 @@ public class AdminMonitoringService {
         );
     }
 
-    public Optional<SystemLog> resolveLog(String id, ResolveLogRequest request) {
+    public @NotNull Optional<SystemLog> resolveLog(@NotNull String id, @NotNull ResolveLogRequest request) {
         return Optional.ofNullable(systemLogRepository.resolveById(
             id,
             request.resolvedBy() != null ? request.resolvedBy() : "admin",
@@ -249,7 +251,7 @@ public class AdminMonitoringService {
         );
     }
 
-    public long deleteLogs(List<String> logIds) {
+    public long deleteLogs(@NotNull List<String> logIds) {
         return systemLogRepository.deleteByIds(logIds);
     }
 

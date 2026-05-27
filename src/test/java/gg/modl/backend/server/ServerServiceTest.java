@@ -14,7 +14,10 @@ import gg.modl.backend.server.data.ServerPlan;
 import gg.modl.backend.server.service.ServerProvisioningService;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class ServerServiceTest {
     @Test
     void verifyEmailTokenUsesAtomicRepositoryClaimBeforeProvisioning() {

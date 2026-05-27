@@ -160,7 +160,7 @@ public class RealtimeWebSocketHandler extends BinaryWebSocketHandler {
             }
         }
 
-        send(session, state, codec.serverHello(state.getConnectionId(), state.getSubscriptions()));
+        sessionOperations.send(session, state, codec.serverHello(state.getConnectionId(), state.getSubscriptions()));
     }
 
     private RealtimeConnectionState stateForIncomingFrame(WebSocketSession session) {
@@ -188,7 +188,7 @@ public class RealtimeWebSocketHandler extends BinaryWebSocketHandler {
                 metrics.recordAck(state, envelope.getAck().getEventId());
             }
             case SUBSCRIBE -> subscribe(session, state, envelope.getSubscribe().getTopicsList());
-            case UNSUBSCRIBE -> unsubscribe(state, envelope.getUnsubscribe().getTopicsList());
+            case UNSUBSCRIBE -> envelope.getUnsubscribe().getTopicsList().forEach(state::unsubscribe);
             case CLIENT_HELLO -> {
                 metrics.recordReject(state, "duplicate_client_hello");
                 closeWithError(session, state, ErrorCode.ERROR_CODE_INVALID_MESSAGE, "ClientHello may only be sent once", POLICY_VIOLATION);
@@ -211,18 +211,10 @@ public class RealtimeWebSocketHandler extends BinaryWebSocketHandler {
         topics.forEach(state::subscribe);
     }
 
-    private void unsubscribe(RealtimeConnectionState state, List<Topic> topics) {
-        topics.forEach(state::unsubscribe);
-    }
-
     private void closeWithError(WebSocketSession session, RealtimeConnectionState state, ErrorCode code, String message, CloseStatus status) throws IOException {
         if (session.isOpen()) {
-            send(session, state, codec.error(code, message));
+            sessionOperations.send(session, state, codec.error(code, message));
             sessionOperations.requestClose(session, state, status.withReason(message), "error");
         }
-    }
-
-    private void send(WebSocketSession session, RealtimeConnectionState state, BinaryMessage message) throws IOException {
-        sessionOperations.send(session, state, message);
     }
 }

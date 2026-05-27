@@ -2,6 +2,7 @@ package gg.modl.backend.infrastructure.config;
 
 import jakarta.annotation.PostConstruct;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +24,7 @@ public class DevelopmentModeGuard {
         }
 
         boolean isProductionProfile = Arrays.stream(environment.getActiveProfiles())
-            .anyMatch(profile -> PRODUCTION_PROFILES.contains(profile.toLowerCase()));
+            .anyMatch(profile -> PRODUCTION_PROFILES.contains(profile.toLowerCase(Locale.ROOT)));
 
         if (isProductionProfile) {
             throw new IllegalStateException(

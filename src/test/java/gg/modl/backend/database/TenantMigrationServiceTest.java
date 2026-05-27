@@ -3,6 +3,7 @@ package gg.modl.backend.database;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -18,9 +19,12 @@ import java.util.List;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
+@ExtendWith(MockitoExtension.class)
 class TenantMigrationServiceTest {
     @Test
     void appliesLowercaseUuidMigrationWhenMarkerMissing() {
@@ -87,10 +91,10 @@ class TenantMigrationServiceTest {
         MongoCollection<Document> migrations = mock(MongoCollection.class);
         @SuppressWarnings("unchecked")
         FindIterable<Document> findIterable = mock(FindIterable.class);
-        when(template.getCollection(CollectionName.TENANT_MIGRATIONS)).thenReturn(migrations);
-        when(migrations.find(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(existingMarker);
-        when(migrations.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+        lenient().when(template.getCollection(CollectionName.TENANT_MIGRATIONS)).thenReturn(migrations);
+        lenient().when(migrations.find(any(Bson.class))).thenReturn(findIterable);
+        lenient().when(findIterable.first()).thenReturn(existingMarker);
+        lenient().when(migrations.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
             .thenReturn(UpdateResult.acknowledged(0, 1L, null));
         return migrations;
     }
@@ -99,10 +103,10 @@ class TenantMigrationServiceTest {
         @SuppressWarnings("unchecked")
         MongoCollection<Document> tickets = mock(MongoCollection.class);
         com.mongodb.client.MongoDatabase database = mock(com.mongodb.client.MongoDatabase.class);
-        when(template.getCollection(CollectionName.TICKETS)).thenReturn(tickets);
-        when(template.getDb()).thenReturn(database);
-        when(database.getName()).thenReturn("tenant_db");
-        when(tickets.updateMany(any(Bson.class), anyList()))
+        lenient().when(template.getCollection(CollectionName.TICKETS)).thenReturn(tickets);
+        lenient().when(template.getDb()).thenReturn(database);
+        lenient().when(database.getName()).thenReturn("tenant_db");
+        lenient().when(tickets.updateMany(any(Bson.class), anyList()))
             .thenReturn(UpdateResult.acknowledged(matched, modified, null));
         return tickets;
     }

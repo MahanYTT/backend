@@ -9,14 +9,16 @@ import gg.modl.backend.infrastructure.rest.RESTMappingV1;
 import gg.modl.backend.infrastructure.rest.RESTSecurityRole;
 import gg.modl.backend.infrastructure.rest.RequestUtil;
 import gg.modl.backend.infrastructure.util.CookieUtil;
+import gg.modl.backend.infrastructure.validation.RequestValidationLimits;
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import gg.modl.backend.infrastructure.validation.RequestValidationLimits;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -39,7 +41,7 @@ public class AdminAuthController {
     private static final long SESSION_MAX_AGE = 24 * 60 * 60; // 24 hours
 
     @PostMapping("/request-code")
-    public ResponseEntity<?> requestCode(@RequestBody @Valid RequestCodeRequest request) throws Exception {
+    public ResponseEntity<?> requestCode(@RequestBody @Valid RequestCodeRequest request) throws MessagingException, UnsupportedEncodingException {
 
         Optional<AdminUser> adminOpt = adminAuthService.findByEmail(request.email());
         if (adminOpt.isPresent()) {
@@ -116,7 +118,6 @@ public class AdminAuthController {
             new SessionData(admin.getEmail(), admin.getLastActivityAt(), admin.getLoggedInIps(), true)));
     }
 
-    // Request/Response records
     public record RequestCodeRequest(@Email @NotBlank @Size(max = RequestValidationLimits.EMAIL_MAX_LENGTH) String email) {}
 
     public record LoginRequest(@Email @NotBlank @Size(max = RequestValidationLimits.EMAIL_MAX_LENGTH) String email, @NotBlank @Size(max = RequestValidationLimits.TICKET_VERIFY_CODE_MAX_LENGTH) String code) {}

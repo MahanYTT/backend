@@ -7,7 +7,6 @@ import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -23,8 +22,8 @@ import gg.modl.backend.infrastructure.proto.ProtobufMediaTypes;
 import gg.modl.backend.infrastructure.rest.RESTMappingV1;
 import gg.modl.backend.infrastructure.rest.RESTMappingV3;
 import gg.modl.backend.infrastructure.rest.RequestAttribute;
-import gg.modl.backend.role.controller.MinecraftRolesController;
-import gg.modl.backend.role.controller.MinecraftRolesV3Controller;
+import gg.modl.backend.role.controller.v1.MinecraftRolesController;
+import gg.modl.backend.role.controller.v3.MinecraftRolesV3Controller;
 import gg.modl.backend.role.dto.response.RoleResponse;
 import gg.modl.backend.role.service.RoleService;
 import gg.modl.backend.server.data.Server;
@@ -39,20 +38,23 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+@ExtendWith(MockitoExtension.class)
 class MinecraftRolesV3ControllerTest {
-    private RoleService roleService;
+    @Mock private RoleService roleService;
     private MockMvc v3MockMvc;
     private MockMvc v1MockMvc;
     private Server server;
 
     @BeforeEach
     void setUp() {
-        roleService = mock(RoleService.class);
         server = new Server("Demo", "demo", "server_demo", "admin@example.com", true, ServerPlan.FREE);
 
         v3MockMvc = MockMvcBuilders.standaloneSetup(new MinecraftRolesV3Controller(roleService))

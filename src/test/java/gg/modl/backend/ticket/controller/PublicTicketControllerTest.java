@@ -1,6 +1,5 @@
 package gg.modl.backend.ticket.controller;
 
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -28,21 +27,23 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+@ExtendWith(MockitoExtension.class)
 class PublicTicketControllerTest {
-    private TicketService ticketService;
-    private TicketEmailVerificationService verificationService;
+    @Mock private TicketService ticketService;
+    @Mock private TicketReplyService ticketReplyService;
+    @Mock private TicketEmailVerificationService verificationService;
     private MockMvc mockMvc;
     private Server server;
 
     @BeforeEach
     void setUp() {
-        ticketService = mock(TicketService.class);
-        TicketReplyService ticketReplyService = mock(TicketReplyService.class);
-        verificationService = mock(TicketEmailVerificationService.class);
         server = new Server("Demo", "demo", "server_demo", "admin@example.com", true, ServerPlan.FREE);
 
         mockMvc = MockMvcBuilders

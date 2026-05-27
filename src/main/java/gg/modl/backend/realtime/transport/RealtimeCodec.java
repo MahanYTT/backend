@@ -3,6 +3,7 @@ package gg.modl.backend.realtime.transport;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Timestamp;
 import gg.modl.backend.realtime.config.RealtimeProperties;
+import gg.modl.proto.modl.v1.Error;
 import gg.modl.proto.modl.v1.ErrorCode;
 import gg.modl.proto.modl.v1.Heartbeat;
 import gg.modl.proto.modl.v1.RealtimeEnvelope;
@@ -10,6 +11,7 @@ import gg.modl.proto.modl.v1.ReconnectAction;
 import gg.modl.proto.modl.v1.ReconnectAdvice;
 import gg.modl.proto.modl.v1.ReconnectReason;
 import gg.modl.proto.modl.v1.ServerHello;
+import gg.modl.proto.modl.v1.Topic;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.UUID;
@@ -33,7 +35,7 @@ public class RealtimeCodec {
         return RealtimeEnvelope.parseFrom(payload);
     }
 
-    public BinaryMessage serverHello(String connectionId, Collection<gg.modl.proto.modl.v1.Topic> acceptedTopics) {
+    public BinaryMessage serverHello(String connectionId, Collection<Topic> acceptedTopics) {
         ServerHello hello = ServerHello.newBuilder()
             .setProtocolVersion(properties.getProtocolVersion())
             .setConnectionId(connectionId)
@@ -52,7 +54,7 @@ public class RealtimeCodec {
     }
 
     public BinaryMessage error(ErrorCode code, String message) {
-        gg.modl.proto.modl.v1.Error error = gg.modl.proto.modl.v1.Error.newBuilder()
+        Error error = Error.newBuilder()
             .setCode(code)
             .setMessage(message)
             .build();

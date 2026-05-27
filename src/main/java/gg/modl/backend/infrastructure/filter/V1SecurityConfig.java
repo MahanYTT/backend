@@ -1,7 +1,5 @@
 package gg.modl.backend.infrastructure.filter;
 
-import gg.modl.backend.infrastructure.filter.AdminAuthFilter;
-import gg.modl.backend.infrastructure.filter.SessionAuthenticationFilter;
 import gg.modl.backend.infrastructure.cors.DynamicCorsConfigurationSource;
 import gg.modl.backend.infrastructure.rest.RESTMappingV1;
 import gg.modl.backend.infrastructure.rest.RESTMappingV2;

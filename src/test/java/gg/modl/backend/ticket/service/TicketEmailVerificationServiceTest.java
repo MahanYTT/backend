@@ -15,7 +15,10 @@ import gg.modl.backend.ticket.config.TicketEmailVerificationConfiguration;
 import java.util.Date;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class TicketEmailVerificationServiceTest {
     @Test
     void failedVerificationIncrementsFailedAttempts() {

@@ -19,13 +19,16 @@ import java.util.List;
 import java.util.UUID;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
+@ExtendWith(MockitoExtension.class)
 class ReplayLiteQuotaMongoRepositoryTest {
     private static final UUID SERVER_UUID = UUID.fromString("1f5065ba-8f4a-4d6b-bd04-632f88d0be27");
     private static final LocalDate DAY = LocalDate.parse("2026-05-11");

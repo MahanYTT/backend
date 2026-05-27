@@ -17,12 +17,15 @@ import java.util.Date;
 import java.util.List;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.UpdateDefinition;
 
+@ExtendWith(MockitoExtension.class)
 class ServerMongoRepositoryTest {
     @Test
     void candidateQueryScopesToExplicitRegistrationRecords() {

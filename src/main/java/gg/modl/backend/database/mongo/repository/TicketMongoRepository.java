@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -121,7 +122,7 @@ public class TicketMongoRepository extends AbstractServerMongoRepository<Ticket>
             return "";
         }
         return type.trim()
-            .toLowerCase()
+            .toLowerCase(Locale.ROOT)
             .replaceAll("[^a-z0-9]+", "_")
             .replaceAll("^_+|_+$", "");
     }
@@ -134,8 +135,8 @@ public class TicketMongoRepository extends AbstractServerMongoRepository<Ticket>
     }
 
     public List<Ticket> findPlayerTicketsWithReplayUrl(Server server, String playerUuid, int limit) {
-        String lower = playerUuid == null ? null : playerUuid.toLowerCase(java.util.Locale.ROOT);
-        String upper = playerUuid == null ? null : playerUuid.toUpperCase(java.util.Locale.ROOT);
+        String lower = playerUuid == null ? null : playerUuid.toLowerCase(Locale.ROOT);
+        String upper = playerUuid == null ? null : playerUuid.toUpperCase(Locale.ROOT);
         List<String> uuidCandidates = lower != null && lower.equals(upper)
             ? List.of(lower)
             : Arrays.asList(lower, upper);

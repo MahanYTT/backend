@@ -1,5 +1,6 @@
 package gg.modl.backend.infrastructure.filter;
 
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -16,9 +17,12 @@ import gg.modl.backend.staff.service.StaffService;
 import jakarta.servlet.FilterChain;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+@ExtendWith(MockitoExtension.class)
 class PanelPermissionFilterTest {
 
     @Test
@@ -34,7 +38,7 @@ class PanelPermissionFilterTest {
         request.setAttribute(RequestAttribute.SESSION, session);
         MockHttpServletResponse response = new MockHttpServletResponse();
         FilterChain chain = mock(FilterChain.class);
-        when(permissionService.isSuperAdmin(server, "staff@example.com")).thenReturn(false);
+        lenient().when(permissionService.isSuperAdmin(server, "staff@example.com")).thenReturn(false);
 
         filter.doFilter(request, response, chain);
 

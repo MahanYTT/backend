@@ -3,15 +3,18 @@ package gg.modl.backend.appeal.service;
 import gg.modl.backend.appeal.dto.request.AddAppealReplyRequest;
 import gg.modl.backend.appeal.dto.request.CreateAppealRequest;
 import gg.modl.backend.appeal.dto.request.UpdateAppealStatusRequest;
-import gg.modl.backend.infrastructure.util.MongoKeyUtils;
 import gg.modl.backend.database.mongo.repository.PlayerMongoRepository;
-import gg.modl.backend.infrastructure.exception.ResourceNotFoundException;
 import gg.modl.backend.database.mongo.repository.TicketMongoRepository;
+import gg.modl.backend.infrastructure.exception.ResourceNotFoundException;
+import gg.modl.backend.infrastructure.util.IdGenerator;
+import gg.modl.backend.infrastructure.util.MongoKeyUtils;
+import gg.modl.backend.infrastructure.util.UuidUtil;
 import gg.modl.backend.player.data.Player;
 import gg.modl.backend.player.data.punishment.Punishment;
 import gg.modl.backend.player.data.punishment.PunishmentModification;
 import gg.modl.backend.player.data.punishment.PunishmentModificationType;
 import gg.modl.backend.player.data.punishment.PunishmentNote;
+import gg.modl.backend.player.service.PlayerDataUtils;
 import gg.modl.backend.player.service.PunishmentLifecycleService;
 import gg.modl.backend.player.service.PunishmentMutationService;
 import gg.modl.backend.server.data.Server;
@@ -22,7 +25,6 @@ import gg.modl.backend.ticket.data.TicketReply;
 import gg.modl.backend.ticket.data.TicketStatus;
 import gg.modl.backend.ticket.dto.response.TicketResponse;
 import gg.modl.backend.ticket.service.TicketIdGenerator;
-import gg.modl.backend.player.service.PlayerDataUtils;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -31,7 +33,6 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import gg.modl.backend.infrastructure.util.IdGenerator;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -88,7 +89,7 @@ public class AppealService {
     }
 
     public TicketResponse createAppeal(Server server, CreateAppealRequest request) {
-        String playerUuid = normalizeUuid(request.playerUuid());
+        String playerUuid = UuidUtil.normalizeUuid(request.playerUuid());
         Player player = findPlayerWithPunishment(server, playerUuid, request.punishmentId());
         if (player == null) {
             throw new IllegalArgumentException("Punishment not found for the specified player");
@@ -246,11 +247,11 @@ public class AppealService {
     }
 
     public TicketResponse updateStatus(Server server, String appealId, UpdateAppealStatusRequest request) {
-        Ticket appeal = ticketRepository.findByTicketId(server, appealId)
+        final Ticket appeal = ticketRepository.findByTicketId(server, appealId)
             .filter(t -> t.getType() == TicketCategory.APPEAL)
             .orElseThrow(() -> new ResourceNotFoundException("Appeal not found"));
 
-        List<TicketReply> systemReplies = new ArrayList<>();
+        final List<TicketReply> systemReplies = new ArrayList<>();
         boolean statusChanged = false;
 
         AppealWorkflowStatus requestedWorkflowStatus = null;
@@ -326,20 +327,20 @@ public class AppealService {
     }
 
     private void addAppealRejectedNote(Server server, Ticket appeal, String staffUsername) {
-        Map<String, Object> data = appeal.getData();
+        final Map<String, Object> data = appeal.getData();
         if (data == null) {
             return;
         }
 
-        String punishmentId = (String) data.get("punishmentId");
-        String playerUuid = normalizeUuid((String) data.get("playerUuid"));
+        final String punishmentId = (String) data.get("punishmentId");
+        final String playerUuid = UuidUtil.normalizeUuid((String) data.get("playerUuid"));
 
         if (punishmentId == null || playerUuid == null) {
             return;
         }
 
-        Date now = new Date();
-        String staffName = staffUsername != null ? staffUsername : "System";
+        final Date now = new Date();
+        final String staffName = staffUsername != null ? staffUsername : "System";
 
         PunishmentNote appealRejectedNote = new PunishmentNote(
             IdGenerator.generateShortId(),
@@ -362,20 +363,20 @@ public class AppealService {
     }
 
     private void pardonPunishment(Server server, Ticket appeal, String staffUsername) {
-        Map<String, Object> data = appeal.getData();
+        final Map<String, Object> data = appeal.getData();
         if (data == null) {
             return;
         }
 
-        String punishmentId = (String) data.get("punishmentId");
-        String playerUuid = normalizeUuid((String) data.get("playerUuid"));
+        final String punishmentId = (String) data.get("punishmentId");
+        final String playerUuid = UuidUtil.normalizeUuid((String) data.get("playerUuid"));
 
         if (punishmentId == null || playerUuid == null) {
             return;
         }
 
-        Date now = new Date();
-        String staffName = staffUsername != null ? staffUsername : "System";
+        final Date now = new Date();
+        final String staffName = staffUsername != null ? staffUsername : "System";
 
         PunishmentModification modification = new PunishmentModification(
             IdGenerator.generateShortId(),
@@ -426,7 +427,4 @@ public class AppealService {
             .build();
     }
 
-    private static String normalizeUuid(String value) {
-        return value == null ? null : value.toLowerCase(java.util.Locale.ROOT);
-    }
 }

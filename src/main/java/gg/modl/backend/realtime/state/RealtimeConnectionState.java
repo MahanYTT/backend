@@ -8,6 +8,7 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class RealtimeConnectionState {
@@ -35,7 +36,7 @@ public class RealtimeConnectionState {
         return principal != null;
     }
 
-    public void authenticate(RealtimePrincipal principal, int protocolVersion) {
+    public void authenticate(@NotNull RealtimePrincipal principal, int protocolVersion) {
         this.principal = principal;
         this.protocolVersion = protocolVersion;
     }
@@ -81,19 +82,19 @@ public class RealtimeConnectionState {
         }
     }
 
-    public void subscribe(Topic topic) {
+    public void subscribe(@NotNull Topic topic) {
         synchronized (subscriptions) {
             subscriptions.add(topic);
         }
     }
 
-    public void unsubscribe(Topic topic) {
+    public void unsubscribe(@NotNull Topic topic) {
         synchronized (subscriptions) {
             subscriptions.remove(topic);
         }
     }
 
-    public boolean isSubscribedTo(Topic topic) {
+    public boolean isSubscribedTo(@NotNull Topic topic) {
         synchronized (subscriptions) {
             return subscriptions.contains(topic);
         }

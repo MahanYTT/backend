@@ -131,7 +131,6 @@ public class ServerProvisioningService {
     private Map<String, Object> buildApplicationForm() {
         List<Map<String, Object>> fields = new ArrayList<>();
 
-        // General section fields
         fields.add(formField("1753244313811", "text", "First Name", null, true, 0, "1753244011186"));
         fields.add(formField("1753244038340", "text", "Discord username", "Please use the new username format, starting with an @.", true, 1, "1753244011186"));
         fields.add(formField("1753244070995", "text", "Age", null, true, 2, "1753244011186"));
@@ -142,7 +141,6 @@ public class ServerProvisioningService {
         fields.add(
             formField("1753244114967", "checkbox", "Do you have access to both a working microphone and recording software?", null, true, 5, "1753244011186"));
 
-        // Position dropdown with section mapping
         Map<String, Object> positionField = new LinkedHashMap<>();
         positionField.put("id", "1753244244863");
         positionField.put("type", "dropdown");
@@ -160,7 +158,6 @@ public class ServerProvisioningService {
         ));
         fields.add(positionField);
 
-        // Moderator section fields
         fields.add(formField("1753244506417", "textarea", "Have you ever been banned or muted on this server? If yes, what have you learned moving forward?",
             "If so, please explain each occurrence.", true, 0, "1753244183109"));
         fields.add(formField("1753244551193", "textarea", "Describe your moderation background and previous experience.",
@@ -186,19 +183,16 @@ public class ServerProvisioningService {
             "You are a Moderator with the ability to mute and ban. You notice a well-known streamer/YouTuber closely affiliated with the server is nicked. They message a player words encouraging suicide under their disguised alias. What steps do you take to resolve the situation?",
             null, true, 15, "1753244183109"));
 
-        // Builder section fields
         fields.add(formField("1753245081481", "textarea", "Do you have experience building for other servers?", null, true, 16, "1753244277605"));
         fields.add(formField("1753245137086", "textarea", "Please provide proof of previous work in link form here (Imgur, YouTube, etc)", null, true, 17,
             "1753244277605"));
         fields.add(formField("1753245154307", "textarea", "Anything else you would like to say?", null, false, 23, "1753244277605"));
 
-        // Developer section fields
         fields.add(formField("1753245191475", "textarea", "Why do you want to be a developer on this server?", null, true, 0, "1753244282540"));
         fields.add(formField("1753245262717", "textarea", "Do you have experience developing for other servers?", null, true, 1, "1753244282540"));
         fields.add(formField("1753245280773", "text", "Please provide proof of previous work in the form of a GitHub link", null, true, 2, "1753244282540"));
         fields.add(formField("1753245291714", "textarea", "Anything else you would like to say?", null, false, 3, "1753244282540"));
 
-        // Media section fields
         fields.add(formField("1753245348514", "text", "Have you ever been banned or muted on this server? If yes, what have you learned moving forward?",
             "If so, please explain each occurrence.", true, 23, "1753244286527"));
         fields.add(formField("1753245358313", "text", "A link to your YouTube and/or Stream Channel", null, true, 24, "1753244286527"));
@@ -382,8 +376,6 @@ public class ServerProvisioningService {
         return action;
     }
 
-    // Helper methods for building form data structures
-
     private void seedGeneralSettings(Server server) {
         if (settingsExist(server, "general")) {
             return;
@@ -473,7 +465,6 @@ public class ServerProvisioningService {
             return;
         }
 
-        // Find category IDs for category_dropdown cards
         String rulesCategoryId = categories.stream()
             .filter(c -> "rules-policies".equals(c.getSlug()))
             .findFirst().map(KnowledgebaseCategory::getId).orElse(null);

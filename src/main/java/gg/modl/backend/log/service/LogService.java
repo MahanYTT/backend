@@ -8,6 +8,8 @@ import java.util.Date;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -17,9 +19,8 @@ public class LogService {
     private final ServerLogMongoRepository serverLogRepository;
 
     private static final int MAX_LIMIT = 500;
-    private static final int DEFAULT_LIMIT = 100;
 
-    public List<SystemLogResponse> getLogs(Server server, int limit) {
+    public @NotNull List<SystemLogResponse> getLogs(@NotNull Server server, int limit) {
         int safeLimit = Math.max(1, Math.min(limit, MAX_LIMIT));
         List<SystemLog> logs = serverLogRepository.findRecent(server, safeLimit);
 
@@ -34,7 +35,7 @@ public class LogService {
             .toList();
     }
 
-    public SystemLog createLog(Server server, String description, String level, String source) {
+    public @NotNull SystemLog createLog(@NotNull Server server, @NotNull String description, @Nullable String level, @Nullable String source) {
         SystemLog logEntry = SystemLog.builder()
             .description(description)
             .level(level != null ? level : "info")

@@ -16,6 +16,8 @@ import gg.modl.backend.server.data.Server;
 import gg.modl.backend.settings.data.PunishmentType;
 import gg.modl.backend.settings.service.PunishmentTypeService;
 import gg.modl.backend.infrastructure.exception.ResourceNotFoundException;
+import gg.modl.backend.infrastructure.util.IdGenerator;
+import gg.modl.backend.infrastructure.util.UuidUtil;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -27,7 +29,6 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import gg.modl.backend.infrastructure.util.IdGenerator;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -55,7 +56,7 @@ public class PlayerService {
 
         List<Player> players;
         if (isUuid(normalizedSearch)) {
-            players = playerRepository.findByMinecraftUuid(server, normalizeUuid(normalizedSearch))
+            players = playerRepository.findByMinecraftUuid(server, UuidUtil.normalizeUuid(normalizedSearch))
                 .map(List::of)
                 .orElseGet(List::of);
         } else {
@@ -349,7 +350,7 @@ public class PlayerService {
         }
         String offenseLevel = PunishmentData.getOffenseLevel(data);
         if (offenseLevel != null) {
-            return switch (offenseLevel.toLowerCase()) {
+            return switch (offenseLevel.toLowerCase(Locale.ROOT)) {
                 case "first" -> "low";
                 default -> offenseLevel; // "medium" and "habitual" stay as-is
             };
@@ -518,7 +519,7 @@ public class PlayerService {
             return;
         }
 
-        Player player = playerRepository.findByMinecraftUuid(server, normalizeUuid(minecraftUuid)).orElse(null);
+        Player player = playerRepository.findByMinecraftUuid(server, UuidUtil.normalizeUuid(minecraftUuid)).orElse(null);
         if (player == null) {
             return;
         }
@@ -577,7 +578,4 @@ public class PlayerService {
         return player.getData();
     }
 
-    private static String normalizeUuid(String value) {
-        return value == null ? null : value.toLowerCase(Locale.ROOT);
-    }
 }

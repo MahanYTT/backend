@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -103,7 +104,8 @@ public class AnalyticsService {
 
         try {
             return LocalDate.parse(dateKey).format(formatter);
-        } catch (Exception ignored) {
+        } catch (DateTimeParseException e) {
+            log.debug("Unable to parse analytics date key '{}'; passing through raw value", dateKey);
             return dateKey;
         }
     }
@@ -111,7 +113,8 @@ public class AnalyticsService {
     private String normalizeCategory(String category) {
         try {
             return TicketCategory.fromCanonicalId(category).getDisplayName();
-        } catch (IllegalArgumentException ignored) {
+        } catch (IllegalArgumentException e) {
+            log.debug("Unknown ticket category id '{}', bucketing as 'Other'", category);
             return "Other";
         }
     }
@@ -119,20 +122,21 @@ public class AnalyticsService {
     private String normalizeStatus(String status) {
         try {
             return TicketStatus.fromCanonicalId(status).getDisplayName();
-        } catch (IllegalArgumentException ignored) {
+        } catch (IllegalArgumentException e) {
+            log.debug("Unknown ticket status id '{}', bucketing as 'Other'", status);
             return "Other";
         }
     }
 
     public PunishmentAnalyticsResponse getPunishmentAnalytics(Server server, String period) {
-        Date startDate = DateRangeUtil.getStartDate(period);
-        Document facetResults = analyticsRepository.aggregatePunishmentAnalytics(server, startDate, ANALYTICS_TIME_ZONE);
+        final Date startDate = DateRangeUtil.getStartDate(period);
+        final Document facetResults = analyticsRepository.aggregatePunishmentAnalytics(server, startDate, ANALYTICS_TIME_ZONE);
         if (facetResults == null) {
             return new PunishmentAnalyticsResponse(List.of(), List.of(), List.of(), List.of());
         }
-        Map<Integer, String> punishmentTypeNames = resolvePunishmentTypeNames(server);
+        final Map<Integer, String> punishmentTypeNames = resolvePunishmentTypeNames(server);
 
-        List<PunishmentAnalyticsResponse.TypeCount> byType = toDocumentList(facetResults.get("byType")).stream()
+        final List<PunishmentAnalyticsResponse.TypeCount> byType = toDocumentList(facetResults.get("byType")).stream()
             .map(doc -> {
                 Object rawTypeOrdinal = doc.get("_id");
                 Integer typeOrdinal = rawTypeOrdinal instanceof Number number ? number.intValue() : null;
@@ -144,18 +148,17 @@ public class AnalyticsService {
             .sorted((a, b) -> Integer.compare(b.count(), a.count()))
             .toList();
 
-        // Collect potential staff IDs for batch resolution
-        List<Document> byStaffDocs = toDocumentList(facetResults.get("byStaff"));
-        Set<String> potentialIds = new HashSet<>();
+        final List<Document> byStaffDocs = toDocumentList(facetResults.get("byStaff"));
+        final Set<String> potentialIds = new HashSet<>();
         for (Document document : byStaffDocs) {
             Object rawId = document.get("_id");
             if (rawId instanceof String s && !s.isBlank()) {
                 potentialIds.add(s);
             }
         }
-        Map<String, String> resolvedStaff = issuerNameResolver.batchResolve(potentialIds, server);
+        final Map<String, String> resolvedStaff = issuerNameResolver.batchResolve(potentialIds, server);
 
-        Map<String, Integer> staffCountMap = new HashMap<>();
+        final Map<String, Integer> staffCountMap = new HashMap<>();
         for (Document document : byStaffDocs) {
             Object rawId = document.get("_id");
             String staffName;
@@ -166,19 +169,19 @@ public class AnalyticsService {
             }
             staffCountMap.merge(staffName, toInt(document.get("count")), Integer::sum);
         }
-        List<PunishmentAnalyticsResponse.StaffPunishment> byStaff = staffCountMap.entrySet()
+        final List<PunishmentAnalyticsResponse.StaffPunishment> byStaff = staffCountMap.entrySet()
             .stream()
             .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
             .limit(20)
             .map(entry -> new PunishmentAnalyticsResponse.StaffPunishment(entry.getKey(), entry.getValue()))
             .toList();
 
-        Map<String, Integer> dailyPunishmentMap = new LinkedHashMap<>();
+        final Map<String, Integer> dailyPunishmentMap = new LinkedHashMap<>();
         for (Document document : toDocumentList(facetResults.get("daily"))) {
-            String dayLabel = formatPunishmentDay(document.getString("_id"));
+            final String dayLabel = formatPunishmentDay(document.getString("_id"));
             dailyPunishmentMap.merge(dayLabel, toInt(document.get("count")), Integer::sum);
         }
-        List<PunishmentAnalyticsResponse.DailyPunishment> dailyPunishments = dailyPunishmentMap.entrySet()
+        final List<PunishmentAnalyticsResponse.DailyPunishment> dailyPunishments = dailyPunishmentMap.entrySet()
             .stream()
             .map(entry -> new PunishmentAnalyticsResponse.DailyPunishment(entry.getKey(), entry.getValue()))
             .toList();
@@ -233,20 +236,21 @@ public class AnalyticsService {
             ))
             .toList();
 
-        long now = System.currentTimeMillis();
-        Date since = DateRangeUtil.daysAgo(1);
+        final long now = System.currentTimeMillis();
+        final Date since = DateRangeUtil.daysAgo(1);
 
-        List<Document> hourlyResults = analyticsRepository.aggregateHourlyAuditLogCounts(server, since, ANALYTICS_TIME_ZONE);
+        final List<Document> hourlyResults = analyticsRepository.aggregateHourlyAuditLogCounts(server, since, ANALYTICS_TIME_ZONE);
 
-        Map<String, Integer> hourlyMap = new LinkedHashMap<>();
+        final Map<String, Integer> hourlyMap = new LinkedHashMap<>();
         for (Document doc : hourlyResults) {
-            String bucketKey = doc.getString("_id");
-            int count = toInt(doc.get("count"));
+            final String bucketKey = doc.getString("_id");
+            final int count = toInt(doc.get("count"));
             try {
                 LocalDateTime ldt = LocalDateTime.parse(bucketKey, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH"));
                 String hourLabel = String.format("%02d:00", ldt.getHour());
                 hourlyMap.merge(hourLabel, count, Integer::sum);
-            } catch (Exception ignored) {
+            } catch (DateTimeParseException e) {
+                log.debug("Skipping audit log hourly bucket with unparseable key '{}'", bucketKey);
             }
         }
 
@@ -264,33 +268,33 @@ public class AnalyticsService {
     }
 
     public PlayerActivityResponse getPlayerActivityAnalytics(Server server, String period) {
-        Date startDate = DateRangeUtil.getStartDate(period);
+        final Date startDate = DateRangeUtil.getStartDate(period);
 
-        Document facetResults = analyticsRepository.aggregatePlayerActivity(server, startDate, ANALYTICS_TIME_ZONE);
+        final Document facetResults = analyticsRepository.aggregatePlayerActivity(server, startDate, ANALYTICS_TIME_ZONE);
         if (facetResults == null) {
             return new PlayerActivityResponse(List.of(), List.of(),
                 new PlayerActivityResponse.SuspiciousActivity(0, 0));
         }
 
-        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MMM dd");
+        final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MMM dd");
 
-        List<PlayerActivityResponse.DailyCount> newPlayersTrend = toDocumentList(facetResults.get("newPlayers")).stream()
+        final List<PlayerActivityResponse.DailyCount> newPlayersTrend = toDocumentList(facetResults.get("newPlayers")).stream()
             .map(doc -> new PlayerActivityResponse.DailyCount(
                 formatDateLabel(doc.getString("_id"), dateFormatter),
                 toInt(doc.get("count"))))
             .toList();
 
-        List<PlayerActivityResponse.CountryCount> loginsByCountry = toDocumentList(facetResults.get("byCountry")).stream()
+        final List<PlayerActivityResponse.CountryCount> loginsByCountry = toDocumentList(facetResults.get("byCountry")).stream()
             .map(doc -> new PlayerActivityResponse.CountryCount(
                 doc.getString("_id"),
                 toInt(doc.get("count"))))
             .toList();
 
-        List<Document> suspiciousList = toDocumentList(facetResults.get("suspicious"));
+        final List<Document> suspiciousList = toDocumentList(facetResults.get("suspicious"));
         int proxyCount = 0;
         int hostingCount = 0;
         if (!suspiciousList.isEmpty()) {
-            Document suspicious = suspiciousList.getFirst();
+            final Document suspicious = suspiciousList.getFirst();
             proxyCount = toInt(suspicious.get("proxyCount"));
             hostingCount = toInt(suspicious.get("hostingCount"));
         }

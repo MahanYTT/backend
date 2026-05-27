@@ -6,8 +6,8 @@ import gg.modl.backend.database.mongo.repository.ServerMongoRepository;
 import gg.modl.backend.infrastructure.exception.ValidationException;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.server.data.ServerPlan;
-import gg.modl.backend.storage.service.StorageQuotaService;
 import gg.modl.backend.server.service.ServerMutationHelper;
+import gg.modl.backend.storage.service.StorageQuotaService;
 import java.util.Date;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -133,6 +133,28 @@ public class UsageTrackingService {
         serverRepository.resetUsageCounters(serverId);
     }
 
+    public boolean applyBillingPeriodRollover(Server server, Date newPeriodStart, Date newPeriodEnd) {
+        if (newPeriodStart == null) {
+            return false;
+        }
+        Date lastReset = server.getUsageResetAt();
+        if (lastReset != null && !lastReset.before(newPeriodStart)) {
+            return false;
+        }
+
+        serverMutationHelper.mutate(server, current -> {
+            current.setUsageResetAt(newPeriodStart);
+            current.setCurrentPeriodStart(newPeriodStart);
+            if (newPeriodEnd != null) {
+                current.setCurrentPeriodEnd(newPeriodEnd);
+            }
+            current.setAiRequestsCurrentPeriod(0L);
+            current.setCdnUsageCurrentPeriod(0.0);
+        });
+        log.info("Reset usage counters for server {} on billing period rollover to {}", server.getId(), newPeriodStart);
+        return true;
+    }
+
     public void updateStorageLimit(Server server, long bytes) {
         if (server.getPlan() != ServerPlan.PREMIUM) {
             throw new ValidationException("Storage limit configuration is only available for premium servers");
@@ -152,5 +174,4 @@ public class UsageTrackingService {
             current.setMaxAiOverageRequests(maxAiOverageRequests);
         });
     }
-
 }

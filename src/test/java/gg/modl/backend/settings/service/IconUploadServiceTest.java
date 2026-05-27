@@ -13,9 +13,12 @@ import gg.modl.backend.storage.service.S3StorageService;
 import gg.modl.backend.storage.service.StorageMetadataService;
 import gg.modl.backend.storage.service.StorageQuotaService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
+@ExtendWith(MockitoExtension.class)
 class IconUploadServiceTest {
     @Test
     void uploadDeletesObjectWhenAtomicQuotaReservationFails() throws Exception {

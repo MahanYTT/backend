@@ -4,9 +4,10 @@ import gg.modl.backend.settings.data.PunishmentType;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.experimental.UtilityClass;
 
-public final class PunishmentTypeIndex {
-    private PunishmentTypeIndex() {}
+@UtilityClass
+public class PunishmentTypeIndex {
 
     public static Map<Integer, PunishmentType> byOrdinal(List<PunishmentType> types) {
         Map<Integer, PunishmentType> map = new HashMap<>(types.size() * 2);

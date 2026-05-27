@@ -30,11 +30,14 @@ class BillingServiceTest {
     @Mock
     private PermissionService permissionService;
 
+    @Mock
+    private UsageTrackingService usageTrackingService;
+
     private BillingService billingService;
 
     @BeforeEach
     void setUp() {
-        billingService = new BillingService(stripeService, serverMutationHelper, permissionService);
+        billingService = new BillingService(stripeService, serverMutationHelper, permissionService, usageTrackingService);
     }
 
     @Test

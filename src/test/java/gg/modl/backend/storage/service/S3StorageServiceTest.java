@@ -8,6 +8,8 @@ import static org.mockito.Mockito.when;
 
 import gg.modl.backend.storage.config.S3Configuration;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
@@ -16,6 +18,7 @@ import software.amazon.awssdk.services.s3.model.ListObjectVersionsResponse;
 import software.amazon.awssdk.services.s3.model.ObjectVersion;
 import software.amazon.awssdk.services.s3.model.S3Error;
 
+@ExtendWith(MockitoExtension.class)
 class S3StorageServiceTest {
 
     @Test

@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,8 +24,8 @@ import gg.modl.backend.infrastructure.proto.ProtobufMediaTypes;
 import gg.modl.backend.infrastructure.rest.RequestAttribute;
 import gg.modl.backend.infrastructure.rest.RESTMappingV1;
 import gg.modl.backend.infrastructure.rest.RESTMappingV3;
-import gg.modl.backend.player.controller.MinecraftNotificationController;
-import gg.modl.backend.player.controller.MinecraftNotificationV3Controller;
+import gg.modl.backend.player.controller.v1.MinecraftNotificationController;
+import gg.modl.backend.player.controller.v3.MinecraftNotificationV3Controller;
 import gg.modl.backend.player.service.MinecraftPlayerService;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.server.data.ServerPlan;
@@ -37,22 +36,25 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+@ExtendWith(MockitoExtension.class)
 class MinecraftNotificationV3ControllerTest {
-    private MinecraftPlayerService minecraftPlayerService;
+    @Mock private MinecraftPlayerService minecraftPlayerService;
     private MockMvc v3MockMvc;
     private MockMvc v1MockMvc;
     private Server server;
 
     @BeforeEach
     void setUp() {
-        minecraftPlayerService = mock(MinecraftPlayerService.class);
         server = new Server("Demo", "demo", "server_demo", "admin@example.com", true, ServerPlan.FREE);
 
         v3MockMvc = MockMvcBuilders.standaloneSetup(new MinecraftNotificationV3Controller(minecraftPlayerService))

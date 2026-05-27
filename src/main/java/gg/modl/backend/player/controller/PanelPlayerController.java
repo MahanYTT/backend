@@ -19,13 +19,13 @@ import gg.modl.backend.player.service.AccountLinkingService;
 import gg.modl.backend.player.service.PunishmentEvidenceService;
 import gg.modl.backend.player.service.PunishmentLifecycleService;
 import gg.modl.backend.player.service.PunishmentMutationService;
+import gg.modl.backend.player.service.PunishmentQueryService;
 import gg.modl.backend.replay.dto.PlayerReplayResponse;
 import gg.modl.backend.replay.service.ReplayService;
-import gg.modl.backend.player.service.PunishmentQueryService;
 import gg.modl.backend.infrastructure.rest.RESTMappingV1;
 import gg.modl.backend.infrastructure.rest.RequestUtil;
-import gg.modl.backend.server.data.Server;
 import gg.modl.backend.infrastructure.validation.RegExpConstants;
+import gg.modl.backend.server.data.Server;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
@@ -36,11 +36,11 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -178,7 +178,7 @@ public class PanelPlayerController {
         return ResponseEntity.ok(punishments);
     }
 
-    @GetMapping("/punishments/{punishmentId}")
+    @GetMapping({"/punishments/{punishmentId}", "/punishment/{punishmentId}"})
     public ResponseEntity<PunishmentResponse> getPunishmentById(
         @PathVariable String punishmentId,
         HttpServletRequest request

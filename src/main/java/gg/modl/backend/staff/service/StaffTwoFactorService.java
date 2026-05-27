@@ -1,7 +1,8 @@
 package gg.modl.backend.staff.service;
 
-import gg.modl.backend.infrastructure.config.ModlProperties;
 import gg.modl.backend.database.mongo.repository.StaffMongoRepository;
+import gg.modl.backend.infrastructure.config.ModlProperties;
+import gg.modl.backend.infrastructure.util.UuidUtil;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.staff.data.Staff;
 import java.time.Instant;
@@ -22,7 +23,7 @@ public class StaffTwoFactorService {
         String token = UUID.randomUUID().toString();
         long now = Instant.now().toEpochMilli();
 
-        if (!staffRepository.createTwoFactorToken(server, normalizeUuid(minecraftUuid), token, ip, now)) {
+        if (!staffRepository.createTwoFactorToken(server, UuidUtil.normalizeUuid(minecraftUuid), token, ip, now)) {
             return Optional.empty();
         }
 
@@ -64,7 +65,4 @@ public class StaffTwoFactorService {
     public record TwoFactorTokenResult(String token, String verifyUrl) {
     }
 
-    private static String normalizeUuid(String value) {
-        return value == null ? null : value.toLowerCase(java.util.Locale.ROOT);
-    }
 }

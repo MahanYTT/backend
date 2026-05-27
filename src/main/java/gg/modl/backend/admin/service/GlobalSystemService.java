@@ -12,6 +12,8 @@ import gg.modl.backend.database.mongo.repository.SystemPromptMongoRepository;
 import java.util.Date;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -20,20 +22,20 @@ public class GlobalSystemService {
     private final SystemConfigMongoRepository systemConfigRepository;
     private final SystemPromptMongoRepository systemPromptRepository;
 
-    public SystemConfig.GeneralConfig getGeneralConfigOrDefault() {
+    public @NotNull SystemConfig.GeneralConfig getGeneralConfigOrDefault() {
         return systemConfigRepository.findMainConfig()
             .map(SystemConfig::getGeneral)
             .orElseGet(SystemConfig.GeneralConfig::new);
     }
 
-    public SystemConfig updateConfig(UpdateSystemConfigRequest request) {
+    public @NotNull SystemConfig updateConfig(@NotNull UpdateSystemConfigRequest request) {
         SystemConfig existing = getOrCreateConfig();
         request.applyTo(existing);
         existing.setUpdatedAt(new Date());
         return systemConfigRepository.saveEntity(existing);
     }
 
-    public SystemConfig getOrCreateConfig() {
+    public @NotNull SystemConfig getOrCreateConfig() {
         return systemConfigRepository.findMainConfig()
             .orElseGet(() -> systemConfigRepository.saveEntity(new SystemConfig()));
     }
@@ -83,11 +85,11 @@ public class GlobalSystemService {
         return systemConfigRepository.saveEntity(config).getPerformance();
     }
 
-    public SystemPrompt getPrompt() {
+    public @Nullable SystemPrompt getPrompt() {
         return systemPromptRepository.findActive().orElse(null);
     }
 
-    public SystemPrompt updatePrompt(UpdatePromptRequest request) {
+    public @NotNull SystemPrompt updatePrompt(@NotNull UpdatePromptRequest request) {
         String prompt = request.prompt() != null ? request.prompt().trim() : "";
         if (prompt.isEmpty()) {
             throw new IllegalArgumentException("Prompt content is required");
@@ -96,7 +98,7 @@ public class GlobalSystemService {
         return systemPromptRepository.upsertPrompt(prompt, new Date());
     }
 
-    public SystemPrompt resetPrompt() {
+    public @NotNull SystemPrompt resetPrompt() {
         return systemPromptRepository.upsertPrompt(AITicketAnalysisService.getDefaultPrompt(), new Date());
     }
 }

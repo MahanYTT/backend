@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -29,7 +30,7 @@ public class WebhookSettingsService {
     private static final String SETTINGS_TYPE_WEBHOOKS = "webhookSettings";
     private static final int DEFAULT_EMBED_COLOR = 3447003;
 
-    public WebhookSettings updateWebhookSettings(Server server, WebhookSettings newSettings) {
+    public @NotNull WebhookSettings updateWebhookSettings(@NotNull Server server, @NotNull WebhookSettings newSettings) {
         @SuppressWarnings("unchecked")
         Map<String, Object> data = objectMapper.convertValue(newSettings, Map.class);
 
@@ -38,7 +39,7 @@ public class WebhookSettingsService {
         return getWebhookSettings(server);
     }
 
-    public WebhookSettings getWebhookSettings(Server server) {
+    public @NotNull WebhookSettings getWebhookSettings(@NotNull Server server) {
         Settings settings = settingsRepositoryAccess.findSettings(server, SETTINGS_TYPE_WEBHOOKS).orElse(null);
 
         if (settings == null || settings.getData() == null) {

@@ -1,6 +1,8 @@
 package gg.modl.backend.settings.controller;
 
+import com.mongodb.MongoException;
 import gg.modl.backend.ai.service.AITicketAnalysisService;
+import gg.modl.backend.database.mongo.TenantMongoAccess;
 import gg.modl.backend.infrastructure.exception.ForbiddenException;
 import gg.modl.backend.infrastructure.exception.ValidationException;
 import gg.modl.backend.infrastructure.rest.RESTMappingV1;
@@ -41,6 +43,8 @@ import jakarta.validation.Valid;
 import java.util.Date;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.bson.Document;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -56,6 +60,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping(RESTMappingV1.PANEL_SETTINGS)
 @RequiredArgsConstructor
+@Slf4j
 public class PanelSettingsController {
     private final GeneralSettingsService generalSettingsService;
     private final TicketLabelSettingsService ticketLabelSettingsService;
@@ -69,6 +74,7 @@ public class PanelSettingsController {
     private final OffenderThresholdSettingsService offenderThresholdSettingsService;
     private final PermissionService permissionService;
     private final ReplayRetentionSettingsService replayRetentionSettingsService;
+    private final TenantMongoAccess tenantMongoAccess;
 
     @GetMapping("/general")
     public ResponseEntity<SettingsEnvelope<GeneralSettings>> getGeneralSettings(HttpServletRequest request) {
@@ -268,6 +274,24 @@ public class PanelSettingsController {
             return ResponseEntity.ok(Map.of("message", "Webhook test sent successfully"));
         } else {
             throw new ValidationException("Failed to send webhook test");
+        }
+    }
+
+    @PostMapping("/test-database")
+    public ResponseEntity<?> testDatabase(HttpServletRequest request) {
+        Server server = RequestUtil.getRequestServer(request);
+        try {
+            tenantMongoAccess.forServer(server).getDb().runCommand(new Document("ping", 1));
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Database connection OK"
+            ));
+        } catch (MongoException e) {
+            log.warn("Database connectivity test failed for server {}: {}", server.getServerName(), e.toString());
+            return ResponseEntity.ok(Map.of(
+                "success", false,
+                "message", "Database connection failed"
+            ));
         }
     }
 

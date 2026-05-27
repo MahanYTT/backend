@@ -6,14 +6,16 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 @Document(collection = CollectionName.SERVER_INSTANCE_SNAPSHOTS)
-@Data
+@Getter
+@Setter
 @GenerateMongoFields
 public class ServerInstanceSnapshot {
     @Id
@@ -28,7 +30,8 @@ public class ServerInstanceSnapshot {
     @Field
     private Date createdAt;
 
-    @Data
+    @Getter
+    @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ServerEntry {

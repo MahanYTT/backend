@@ -7,11 +7,12 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+@Slf4j
 public final class RequestUtil {
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RequestUtil.class);
     private static volatile boolean warnedAboutProxy = false;
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final boolean TRUST_PROXY_HEADERS = Boolean.parseBoolean(
@@ -41,7 +42,6 @@ public final class RequestUtil {
         if (session == null || session.getEmail() == null) {
             return "Unknown";
         }
-        // Use email as username fallback - the service layer should resolve actual username if needed
         return session.getEmail();
     }
 
@@ -79,5 +79,9 @@ public final class RequestUtil {
         byte[] bytes = new byte[byteLength];
         RANDOM.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private RequestUtil() {
+        throw new UnsupportedOperationException();
     }
 }

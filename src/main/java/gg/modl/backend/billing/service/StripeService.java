@@ -4,11 +4,11 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.Subscription;
 import com.stripe.model.SubscriptionItem;
-import com.stripe.model.billingportal.Session;
+import com.stripe.model.checkout.Session;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.SubscriptionCreateParams;
 import com.stripe.param.SubscriptionUpdateParams;
-import com.stripe.param.billingportal.SessionCreateParams;
+import com.stripe.param.checkout.SessionCreateParams;
 import com.stripe.param.checkout.SessionCreateParams.ConsentCollection;
 import gg.modl.backend.billing.config.StripeConfiguration;
 import gg.modl.backend.infrastructure.config.ModlProperties;
@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 public class StripeService {
     private final StripeConfiguration config;
     private final ModlProperties modlProperties;
+    private final StripePortalService portalService;
 
     public boolean isConfigured() {
         return config.isConfigured();
@@ -40,12 +41,12 @@ public class StripeService {
         return customer.getId();
     }
 
-    public com.stripe.model.checkout.Session createCheckoutSession(String customerId, String subdomain) throws StripeException {
+    public Session createCheckoutSession(String customerId, String subdomain) throws StripeException {
         String successUrl = String.format("https://%s.%s/panel/settings?session_id={CHECKOUT_SESSION_ID}", subdomain, modlProperties.getDomain());
         String cancelUrl = String.format("https://%s.%s/panel/settings", subdomain, modlProperties.getDomain());
 
-        com.stripe.param.checkout.SessionCreateParams params = com.stripe.param.checkout.SessionCreateParams.builder()
-            .setMode(com.stripe.param.checkout.SessionCreateParams.Mode.SUBSCRIPTION)
+        SessionCreateParams params = SessionCreateParams.builder()
+            .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
             .setAllowPromotionCodes(true)
             .setConsentCollection(
                 ConsentCollection.builder()
@@ -53,7 +54,7 @@ public class StripeService {
                     .build()
             )
             .addLineItem(
-                com.stripe.param.checkout.SessionCreateParams.LineItem.builder()
+                SessionCreateParams.LineItem.builder()
                     .setPrice(config.getPriceId())
                     .setQuantity(1L)
                     .build()
@@ -63,18 +64,11 @@ public class StripeService {
             .setCancelUrl(cancelUrl)
             .build();
 
-        return com.stripe.model.checkout.Session.create(params);
+        return Session.create(params);
     }
 
-    public Session createPortalSession(String customerId, String subdomain) throws StripeException {
-        String returnUrl = String.format("https://%s.%s/panel/settings", subdomain, modlProperties.getDomain());
-
-        SessionCreateParams params = SessionCreateParams.builder()
-            .setCustomer(customerId)
-            .setReturnUrl(returnUrl)
-            .build();
-
-        return Session.create(params);
+    public String createPortalSessionUrl(String customerId, String subdomain) throws StripeException {
+        return portalService.createPortalSession(customerId, subdomain).getUrl();
     }
 
     public Subscription cancelSubscription(String subscriptionId) throws StripeException {

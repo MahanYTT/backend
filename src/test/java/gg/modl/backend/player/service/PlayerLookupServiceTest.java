@@ -2,7 +2,6 @@ package gg.modl.backend.player.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -25,23 +24,32 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class PlayerLookupServiceTest {
     private PlayerLookupService service;
-    private PlayerMongoRepository playerRepository;
+    @Mock private PlayerMongoRepository playerRepository;
+    @Mock private PunishmentTypeService punishmentTypeService;
+    @Mock private MojangApiService mojangApiService;
+    @Mock private PlayerStatusCalculator playerStatusCalculator;
+    @Mock private IssuerNameResolver issuerNameResolver;
+    @Mock private StaffMongoRepository staffRepository;
+    @Mock private PlayerService playerService;
     private Server server;
 
     @BeforeEach
     void setUp() {
-        playerRepository = mock(PlayerMongoRepository.class);
         service = new PlayerLookupService(
             playerRepository,
-            mock(PunishmentTypeService.class),
-            mock(MojangApiService.class),
-            mock(PlayerStatusCalculator.class),
-            mock(IssuerNameResolver.class),
-            mock(StaffMongoRepository.class),
-            mock(PlayerService.class)
+            punishmentTypeService,
+            mojangApiService,
+            playerStatusCalculator,
+            issuerNameResolver,
+            staffRepository,
+            playerService
         );
         server = new Server("Demo", "demo", "server_demo", "admin@example.com", true, ServerPlan.FREE);
     }

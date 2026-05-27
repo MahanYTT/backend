@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Label {
-    private String id;          // UUID
-    private String name;        // e.g., "bug", "critical"
-    private String color;       // Hex color e.g., "#d73a4a"
-    private String description; // Optional description
+    private String id;
+    private String name;
+    private String color;
+    private String description;
 }

@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -29,11 +30,11 @@ public class OffenderThresholdSettingsService {
     private static final int MIN_POINT_EXPIRY_MONTHS = 1;
     private static final int MAX_POINT_EXPIRY_MONTHS = 60;
 
-    public OffenderThresholdSettings getThresholdSettings(Server server) {
+    public @NotNull OffenderThresholdSettings getThresholdSettings(@NotNull Server server) {
         return thresholdCache.get(server.getId(), id -> getThresholdSettingsState(server).data());
     }
 
-    public VersionedSettings<OffenderThresholdSettings> getThresholdSettingsState(Server server) {
+    public @NotNull VersionedSettings<OffenderThresholdSettings> getThresholdSettingsState(@NotNull Server server) {
         SettingsDocumentService.RawSettingsState state = settingsDocumentService.getRawState(server, SETTINGS_TYPE_STATUS_THRESHOLDS);
         OffenderThresholdSettings settings = mapToThresholdSettings(state.data());
         return new VersionedSettings<>(settings, state.version(), state.updatedAt());

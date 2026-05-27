@@ -17,11 +17,14 @@ import java.time.Instant;
 import java.util.List;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
+@ExtendWith(MockitoExtension.class)
 class ReplayLiteMongoRepositoryTest {
     private static final Instant NOW = Instant.parse("2026-05-15T12:00:00Z");
 

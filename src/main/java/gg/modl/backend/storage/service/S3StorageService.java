@@ -16,13 +16,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.core.ResponseBytes;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.Delete;
 import software.amazon.awssdk.services.s3.model.DeleteMarkerEntry;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
-import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
@@ -47,15 +51,16 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 public class S3StorageService {
     public record UploadFileResult(String key, String cdnUrl) {}
     public record S3ObjectInfo(String key, long size, Instant lastModified) {}
+
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
     private final S3Configuration s3Configuration;
     private static final Duration PRESIGN_UPLOAD_DURATION = Duration.ofMinutes(15);
 
     public S3StorageService(
-        @org.springframework.lang.Nullable S3Client s3Client,
-        @org.springframework.lang.Nullable S3Presigner s3Presigner,
-        S3Configuration s3Configuration
+        @Nullable S3Client s3Client,
+        @Nullable S3Presigner s3Presigner,
+        @NotNull S3Configuration s3Configuration
     ) {
         this.s3Client = s3Client;
         this.s3Presigner = s3Presigner;
@@ -105,7 +110,7 @@ public class S3StorageService {
                 return false;
             }
             return true;
-        } catch (Exception e) {
+        } catch (SdkException e) {
             log.error("Error deleting file: {}", key, e);
             return false;
         }
@@ -139,7 +144,8 @@ public class S3StorageService {
             .toList();
     }
 
-    public String getCdnUrl(String key) {
+    @NotNull
+    public String getCdnUrl(@NotNull String key) {
         String cdn = s3Configuration.getCdnDomain();
         if (cdn == null || cdn.isBlank()) {
             return getPresignedUrl(key);
@@ -147,7 +153,8 @@ public class S3StorageService {
         return String.format("https://%s/%s", cdn, key);
     }
 
-    public String getPresignedUrl(String key) {
+    @Nullable
+    public String getPresignedUrl(@NotNull String key) {
         if (s3Presigner == null) {
             return null;
         }
@@ -288,13 +295,14 @@ public class S3StorageService {
             return true;
         } catch (NoSuchKeyException e) {
             return false;
-        } catch (Exception e) {
+        } catch (SdkException e) {
             log.error("Error verifying upload for key: {}", key, e);
             return false;
         }
     }
 
-    public UploadResponse getUploadDetails(String key) {
+    @Nullable
+    public UploadResponse getUploadDetails(@NotNull String key) {
         if (s3Client == null) {
             return null;
         }
@@ -318,7 +326,7 @@ public class S3StorageService {
             );
         } catch (NoSuchKeyException e) {
             return null;
-        } catch (Exception e) {
+        } catch (SdkException e) {
             log.error("Error getting upload details for key: {}", key, e);
             return null;
         }
@@ -497,16 +505,6 @@ public class S3StorageService {
         return totalDeleted;
     }
 
-    /**
-     * Upload a file directly to S3 (for small files like icons).
-     *
-     * @param server      The server for namespacing
-     * @param uploadType  The type of upload (e.g., "icons")
-     * @param fileName    The original file name
-     * @param contentType The MIME type
-     * @param data        The file bytes
-     * @return The CDN URL of the uploaded file
-     */
     public UploadFileResult uploadFile(Server server, String uploadType, String fileName, String contentType, byte[] data) {
         if (s3Client == null) {
             throw new IllegalStateException("S3 storage is not configured");
@@ -522,10 +520,10 @@ public class S3StorageService {
                 .contentLength((long) data.length)
                 .build();
 
-            s3Client.putObject(putRequest, software.amazon.awssdk.core.sync.RequestBody.fromBytes(data));
+            s3Client.putObject(putRequest, RequestBody.fromBytes(data));
 
             return new UploadFileResult(key, getCdnUrl(key));
-        } catch (Exception e) {
+        } catch (SdkException e) {
             log.error("Error uploading file: {}", key, e);
             throw new ExternalServiceException("Failed to upload file", e);
         }

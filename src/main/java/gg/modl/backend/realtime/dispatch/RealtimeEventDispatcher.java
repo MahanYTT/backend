@@ -1,5 +1,7 @@
 package gg.modl.backend.realtime.dispatch;
 
+import org.jetbrains.annotations.NotNull;
+
 public interface RealtimeEventDispatcher {
-    RealtimeDispatchResult publish(RealtimeOutboundEvent event);
+    @NotNull RealtimeDispatchResult publish(@NotNull RealtimeOutboundEvent event);
 }

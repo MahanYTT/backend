@@ -5,12 +5,12 @@ import gg.modl.backend.database.mongo.repository.TicketMongoRepository;
 import gg.modl.backend.infrastructure.config.ModlProperties;
 import gg.modl.backend.player.data.Player;
 import gg.modl.backend.player.data.punishment.Punishment;
-import gg.modl.backend.player.data.punishment.PunishmentModificationType;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.settings.data.PunishmentType;
 import gg.modl.backend.settings.service.PunishmentTypeIndex;
 import gg.modl.backend.ticket.data.Ticket;
 import gg.modl.backend.ticket.data.TicketCategory;
+import gg.modl.proto.modl.v1.SyncStaffNotification;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
@@ -32,20 +32,18 @@ public class SyncStaffEventService {
     private final IssuerNameResolver issuerNameResolver;
     private final ModlProperties modlProperties;
 
-    public List<Map<String, Object>> collectStaffEvents(
+    public List<SyncStaffNotification> collectStaffEvents(
         Server server,
         Instant lastSync,
-        List<PunishmentType> types,
-        List<Map<String, Object>> recentlyModifiedPunishments
+        List<PunishmentType> types
     ) {
-        List<Map<String, Object>> notifications = new ArrayList<>();
+        List<SyncStaffNotification> notifications = new ArrayList<>();
         collectTicketNotifications(server, lastSync, notifications);
         collectPunishmentNotifications(server, lastSync, types, notifications);
-        collectPardonNotifications(recentlyModifiedPunishments, notifications);
         return notifications;
     }
 
-    private void collectTicketNotifications(Server server, Instant lastSync, List<Map<String, Object>> notifications) {
+    private void collectTicketNotifications(Server server, Instant lastSync, List<SyncStaffNotification> notifications) {
         try {
             List<Ticket> recentTickets = ticketRepository.findCreatedAfterExcludingUnfinished(server, Date.from(lastSync), 20);
 
@@ -80,12 +78,6 @@ public class SyncStaffEventService {
                     }
                 }
 
-                Map<String, Object> notification = new LinkedHashMap<>();
-                notification.put("id", "ticket_" + ticket.getId());
-                notification.put("type", "TICKET_CREATED");
-                notification.put("message", message);
-                notification.put("timestamp", ticket.getCreated() != null ? ticket.getCreated().getTime() : System.currentTimeMillis());
-
                 Map<String, Object> ticketData = new LinkedHashMap<>();
                 ticketData.put("ticketId", ticket.getId());
                 ticketData.put("creatorName", creatorName);
@@ -111,15 +103,26 @@ public class SyncStaffEventService {
                     ticketData.put("category", ticketType.getId());
                 }
 
-                notification.put("data", ticketData);
-                notifications.add(notification);
+                long timestamp = ticket.getCreated() != null ? ticket.getCreated().getTime() : System.currentTimeMillis();
+                notifications.add(SyncStaffNotification.newBuilder()
+                    .setId("ticket_" + ticket.getId())
+                    .setType("TICKET_CREATED")
+                    .setMessage(message)
+                    .setTimestamp(timestamp)
+                    .setData(StructMapper.toStruct(ticketData))
+                    .build());
             }
         } catch (Exception e) {
             log.warn("Failed to collect ticket notifications during sync", e);
         }
     }
 
-    private void collectPunishmentNotifications(Server server, Instant lastSync, List<PunishmentType> types, List<Map<String, Object>> notifications) {
+    private void collectPunishmentNotifications(
+        Server server,
+        Instant lastSync,
+        List<PunishmentType> types,
+        List<SyncStaffNotification> notifications
+    ) {
         try {
             List<Player> playersWithNewPunishments = punishmentRepository.findWithPunishmentsIssuedAfter(server, Date.from(lastSync), 50);
             Map<Integer, PunishmentType> typesByOrdinal = PunishmentTypeIndex.byOrdinal(types);
@@ -151,12 +154,12 @@ public class SyncStaffEventService {
                                   : "punished";
 
                     String issuerName = issuerNameResolver.resolve(punishment.getIssuerId(), punishment.getIssuerName(), resolvedIssuers);
-                    notifications.add(Map.of(
-                        "id", "punishment_" + punishment.getId(),
-                        "type", "PUNISHMENT_ISSUED",
-                        "message", issuerName + ": " + action + " " + playerName + " (" + typeName + ")",
-                        "timestamp", punishment.getIssued().getTime()
-                    ));
+                    notifications.add(SyncStaffNotification.newBuilder()
+                        .setId("punishment_" + punishment.getId())
+                        .setType("PUNISHMENT_ISSUED")
+                        .setMessage(issuerName + ": " + action + " " + playerName + " (" + typeName + ")")
+                        .setTimestamp(punishment.getIssued().getTime())
+                        .build());
                 }
             }
         } catch (Exception e) {
@@ -164,36 +167,4 @@ public class SyncStaffEventService {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void collectPardonNotifications(List<Map<String, Object>> recentlyModifiedPunishments, List<Map<String, Object>> notifications) {
-        for (Map<String, Object> modified : recentlyModifiedPunishments) {
-            if (!(modified.get("punishment") instanceof Map<?, ?> rawPunishment)) {
-                continue;
-            }
-            Map<String, Object> punishment = (Map<String, Object>) rawPunishment;
-            String username = modified.get("username") instanceof String value ? value : "Unknown";
-
-            if (!(punishment.get("modifications") instanceof List<?> rawModifications)) {
-                continue;
-            }
-
-            for (Object rawModification : rawModifications) {
-                if (!(rawModification instanceof Map<?, ?> rawModificationMap)) {
-                    continue;
-                }
-                Map<String, Object> modification = (Map<String, Object>) rawModificationMap;
-                String type = modification.get("type") instanceof String value ? value : null;
-                if (PunishmentModificationType.isPardon(type)) {
-                    String pardoner = modification.get("issuerName") instanceof String value ? value : "System";
-                    String punishmentType = punishment.get("type") instanceof String value ? value : "punishment";
-                    notifications.add(Map.of(
-                        "id", "pardon_" + punishment.get("id"),
-                        "type", "PUNISHMENT_PARDONED",
-                        "message", pardoner + ": pardoned " + username + "'s " + punishmentType,
-                        "timestamp", modification.get("timestamp")
-                    ));
-                }
-            }
-        }
-    }
 }

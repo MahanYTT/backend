@@ -2,19 +2,25 @@ package gg.modl.backend.migration.service;
 
 import gg.modl.backend.database.mongo.repository.MigrationMongoRepository;
 import gg.modl.backend.infrastructure.exception.ExternalServiceException;
+import gg.modl.backend.migration.config.MigrationConfiguration;
 import gg.modl.backend.migration.data.MigrationStatus;
 import gg.modl.backend.migration.dto.MigrationStatusResponse;
 import gg.modl.backend.migration.dto.UpdateProgressRequest;
+import gg.modl.backend.realtime.dispatch.RealtimeEventDispatcher;
+import gg.modl.backend.realtime.dispatch.RealtimeOutboundEvent;
 import gg.modl.backend.server.data.Server;
+import gg.modl.proto.modl.v1.MigrationStatusChangedEvent;
+import gg.modl.proto.modl.v1.RealtimeEnvelope;
+import gg.modl.proto.modl.v1.Topic;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import gg.modl.backend.migration.config.MigrationConfiguration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class MigrationService {
     private final MigrationMongoRepository migrationRepository;
     private final MigrationConfiguration migrationConfiguration;
+    private final RealtimeEventDispatcher realtimeEventDispatcher;
 
     private static final List<String> VALID_TYPES = List.of("litebans");
     private static final List<String> VALID_STATUSES = List.of(
@@ -73,7 +80,7 @@ public class MigrationService {
     }
 
     public Map<String, Object> startMigration(Server server, String migrationType) {
-        if (!VALID_TYPES.contains(migrationType.toLowerCase())) {
+        if (!VALID_TYPES.contains(migrationType.toLowerCase(Locale.ROOT))) {
             return Map.of("success", false, "error", "Invalid migration type");
         }
 
@@ -91,7 +98,7 @@ public class MigrationService {
 
         MigrationStatus status = MigrationStatus.builder()
             .taskId(taskId)
-            .type(migrationType.toLowerCase())
+            .type(migrationType.toLowerCase(Locale.ROOT))
             .status("building_json")
             .progress(MigrationStatus.MigrationProgress.builder()
                 .message("Waiting for Minecraft server to build migration file...")
@@ -102,6 +109,7 @@ public class MigrationService {
             .build();
 
         migrationRepository.saveEntity(server, status);
+        publishMigrationStatusChanged(server, taskId, status.getStatus());
 
         return Map.of(
             "success", true,
@@ -119,6 +127,7 @@ public class MigrationService {
 
         migrationRepository.cancelMigration(server, activeMigration.getId(),
             "Cancelled by administrator", new Date(), "Migration cancelled by administrator");
+        publishMigrationStatusChanged(server, activeMigration.getTaskId(), "cancelled");
 
         return Map.of("success", true, "message", "Migration cancelled successfully");
     }
@@ -174,6 +183,7 @@ public class MigrationService {
             request.status(), request.message(),
             request.recordsProcessed(), request.recordsSkipped(),
             request.totalRecords(), completedAt);
+        publishMigrationStatusChanged(server, activeMigration.getTaskId(), request.status());
 
         return Map.of("success", true);
     }
@@ -195,6 +205,25 @@ public class MigrationService {
             return filePath;
         } catch (IOException e) {
             throw new ExternalServiceException("Failed to save migration file", e);
+        }
+    }
+
+    private void publishMigrationStatusChanged(Server server, String taskId, String status) {
+        try {
+            MigrationStatusChangedEvent.Builder payload = MigrationStatusChangedEvent.newBuilder().setMigrationId(taskId);
+            if (status != null) {
+                payload.setStatus(status);
+            }
+            realtimeEventDispatcher.publish(new RealtimeOutboundEvent(
+                server.getId(),
+                Topic.TOPIC_PANEL_MIGRATIONS,
+                RealtimeEnvelope.newBuilder()
+                    .setEventId(server.getId() + "::migration::" + taskId + "::" + System.nanoTime())
+                    .setMigrationStatusChanged(payload)
+                    .build()
+            ));
+        } catch (RuntimeException ex) {
+            log.warn("realtime publish failed for migration {} status {}", taskId, status, ex);
         }
     }
 }

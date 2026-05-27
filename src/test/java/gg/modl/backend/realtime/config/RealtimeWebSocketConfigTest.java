@@ -5,8 +5,11 @@ import static org.mockito.Mockito.mock;
 
 import gg.modl.backend.realtime.transport.RealtimeWebSocketHandler;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.socket.server.standard.ServletServerContainerFactoryBean;
 
+@ExtendWith(MockitoExtension.class)
 class RealtimeWebSocketConfigTest {
 
     @Test

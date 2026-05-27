@@ -25,10 +25,10 @@ public class PanelSystemAlertController {
 
     @GetMapping("/alerts")
     public ResponseEntity<List<PanelSystemAlertResponse>> getAlerts(HttpServletRequest request) {
-        Server server = RequestUtil.getRequestServer(request);
-        String email = RequestUtil.getSessionEmail(request);
-        boolean superAdmin = email != null && permissionService.isSuperAdmin(server, email);
-        List<PanelSystemAlertResponse> response = alertService.getVisibleAlerts(superAdmin, new Date()).stream()
+        final Server server = RequestUtil.getRequestServer(request);
+        final String email = RequestUtil.getSessionEmail(request);
+        final boolean superAdmin = email != null && permissionService.isSuperAdmin(server, email);
+        final List<PanelSystemAlertResponse> response = alertService.getVisibleAlerts(superAdmin, new Date()).stream()
             .map(PanelSystemAlertResponse::from)
             .toList();
         return ResponseEntity.ok(response);

@@ -1,13 +1,14 @@
 package gg.modl.backend.ticket.service;
 
 import gg.modl.backend.database.mongo.repository.TicketMongoRepository;
+import gg.modl.backend.infrastructure.util.PaginationHelper;
+import gg.modl.backend.infrastructure.util.UuidUtil;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.ticket.data.Ticket;
 import gg.modl.backend.ticket.data.TicketCategory;
 import gg.modl.backend.ticket.data.TicketReply;
 import gg.modl.backend.ticket.data.TicketStatus;
 import gg.modl.backend.ticket.dto.response.PaginatedTicketsResponse;
-import gg.modl.backend.infrastructure.util.PaginationHelper;
 import gg.modl.backend.ticket.dto.response.TicketListItemResponse;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -106,14 +107,11 @@ public class TicketSearchService {
     }
 
     public List<Ticket> getTicketsByPlayer(Server server, String playerUuid) {
-        return ticketRepository.findByPlayer(server, normalizeUuid(playerUuid));
+        return ticketRepository.findByPlayer(server, UuidUtil.normalizeUuid(playerUuid));
     }
 
     public List<Ticket> getTicketsByTag(Server server, String tag) {
         return ticketRepository.findByTag(server, tag);
     }
 
-    private static String normalizeUuid(String value) {
-        return value == null ? null : value.toLowerCase(java.util.Locale.ROOT);
-    }
 }

@@ -7,9 +7,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -45,10 +48,10 @@ public class TicketFormSettingsService {
         return patchTicketFormSettings(server, expectedVersion, newSettings).data();
     }
 
-    public TicketFormSettings.TicketForm getFormByType(Server server, String formType) {
+    public @Nullable TicketFormSettings.TicketForm getFormByType(@NotNull Server server, @NotNull String formType) {
         TicketFormSettings settings = getTicketFormSettings(server);
 
-        return switch (formType.toLowerCase()) {
+        return switch (formType.toLowerCase(Locale.ROOT)) {
             case "bug" -> settings.getBug();
             case "support" -> settings.getSupport();
             case "application", "staff" -> settings.getApplication();
@@ -58,11 +61,11 @@ public class TicketFormSettingsService {
         };
     }
 
-    public TicketFormSettings getTicketFormSettings(Server server) {
+    public @NotNull TicketFormSettings getTicketFormSettings(@NotNull Server server) {
         return getTicketFormSettingsState(server).data();
     }
 
-    public VersionedSettings<TicketFormSettings> getTicketFormSettingsState(Server server) {
+    public @NotNull VersionedSettings<TicketFormSettings> getTicketFormSettingsState(@NotNull Server server) {
         SettingsDocumentService.RawSettingsState state = settingsDocumentService.getRawState(server, SETTINGS_TYPE_TICKET_FORMS);
         TicketFormSettings settings = mapToTicketFormSettings(state.data());
         return new VersionedSettings<>(settings, state.version(), state.updatedAt());
@@ -137,15 +140,13 @@ public class TicketFormSettingsService {
     public TicketFormSettings updateFormByType(Server server, String formType, TicketFormSettings.TicketForm form) {
         TicketFormSettings settings = getTicketFormSettings(server);
 
-        switch (formType.toLowerCase()) {
+        switch (formType.toLowerCase(Locale.ROOT)) {
             case "bug" -> settings.setBug(form);
             case "support" -> settings.setSupport(form);
             case "application", "staff" -> settings.setApplication(form);
             case "player" -> settings.setPlayer(form);
             case "chat" -> settings.setChat(form);
-            default -> {
-                // no-op for unknown form type
-            }
+            default -> { /* unknown type, no-op */ }
         }
 
         return updateTicketFormSettings(server, settings);

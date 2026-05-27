@@ -3,6 +3,7 @@ package gg.modl.backend.staff.controller;
 import gg.modl.backend.infrastructure.rest.RESTMappingV1;
 import gg.modl.backend.infrastructure.rest.RequestUtil;
 import gg.modl.backend.server.data.Server;
+import gg.modl.backend.staff.data.Staff;
 import gg.modl.backend.staff.dto.request.AssignMinecraftPlayerRequest;
 import gg.modl.backend.staff.dto.request.CreateStaffRequest;
 import gg.modl.backend.staff.dto.request.InviteStaffRequest;
@@ -118,7 +119,7 @@ public class PanelStaffController {
         Server server = RequestUtil.getRequestServer(request);
         String removerEmail = RequestUtil.getSessionEmail(request);
         String removerRole = staffService.getStaffByEmail(server, removerEmail)
-            .map(staff -> staff.getRole())
+            .map(Staff::getRole)
             .orElse("");
 
         boolean deleted = staffService.deleteStaff(server, id, removerEmail, removerRole);
@@ -192,7 +193,7 @@ public class PanelStaffController {
             return "Super Admin";
         }
         return staffService.getStaffByEmail(server, email)
-            .map(staff -> staff.getRole())
+            .map(Staff::getRole)
             .orElse("");
     }
 }

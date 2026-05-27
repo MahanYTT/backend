@@ -1,10 +1,10 @@
 package gg.modl.backend.role.service;
 
+import gg.modl.backend.database.mongo.repository.StaffMongoRepository;
+import gg.modl.backend.database.mongo.repository.StaffRoleMongoRepository;
 import gg.modl.backend.infrastructure.exception.ConflictException;
 import gg.modl.backend.infrastructure.exception.ForbiddenException;
 import gg.modl.backend.infrastructure.exception.ValidationException;
-import gg.modl.backend.database.mongo.repository.StaffMongoRepository;
-import gg.modl.backend.database.mongo.repository.StaffRoleMongoRepository;
 import gg.modl.backend.role.data.Permission;
 import gg.modl.backend.role.data.StaffRole;
 import gg.modl.backend.role.dto.request.ReorderRolesRequest;
@@ -107,23 +107,19 @@ public class RoleService {
         String roleName = request.name() != null ? request.name().trim() : "";
         ensureRoleNameAvailable(server, roleName, null);
 
-        // Filter out any invalid permissions (e.g. from deleted punishment types)
         Set<String> validPermissions = new HashSet<>(permissionService.getAllPermissionIds(server));
         List<String> filteredPermissions = request.permissions()
             .stream()
             .filter(validPermissions::contains)
             .toList();
 
-        // Filter permissions to only those the performer can grant
         if (!isSuperAdmin) {
             StaffRole performerRole = resolvePerformerRole(server, performerRoleName, false);
             filteredPermissions = filterToGrantablePermissions(performerRole, filteredPermissions);
         }
 
-        // Generate unique ID
         String id = "custom-" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 8);
 
-        // Find highest order and add 1
         StaffRole highestRole = staffRoleRepository.findHighestOrdered(server).orElse(null);
         int nextOrder = highestRole != null ? highestRole.getOrder() + 1 : 4;
 
@@ -145,7 +141,6 @@ public class RoleService {
 
     private StaffRole resolvePerformerRole(Server server, String roleName, boolean isSuperAdmin) {
         if (isSuperAdmin) {
-            // Synthetic super-admin role with order 0 and all permissions
             return StaffRole.builder()
                 .id("super-admin")
                 .name("Super Admin")
@@ -195,12 +190,10 @@ public class RoleService {
     }
 
     public Optional<RoleResponse> updateRole(Server server, String id, RoleRequest request, String performerRoleName, boolean isSuperAdmin) {
-        // Cannot update Super Admin role
         if (id.contains("super-admin")) {
             throw new ForbiddenException("Cannot modify Super Admin role");
         }
 
-        // Hierarchy check: performer must have higher authority than the target role
         if (!isSuperAdmin) {
             StaffRole performerRole = resolvePerformerRole(server, performerRoleName, false);
             StaffRole targetRole = staffRoleRepository.findById(server, id).orElse(null);
@@ -212,14 +205,12 @@ public class RoleService {
         String roleName = request.name() != null ? request.name().trim() : "";
         ensureRoleNameAvailable(server, roleName, id);
 
-        // Filter out any invalid permissions (e.g. from deleted punishment types)
         Set<String> validPermissions = new HashSet<>(permissionService.getAllPermissionIds(server));
         List<String> filteredPermissions = request.permissions()
             .stream()
             .filter(validPermissions::contains)
             .toList();
 
-        // Filter permissions to only those the performer can grant
         if (!isSuperAdmin) {
             StaffRole performerRole = resolvePerformerRole(server, performerRoleName, false);
             filteredPermissions = filterToGrantablePermissions(performerRole, filteredPermissions);
@@ -251,19 +242,16 @@ public class RoleService {
     }
 
     public boolean deleteRole(Server server, String id, String performerRoleName, boolean isSuperAdmin) {
-        // Cannot delete Super Admin role
         if (id.contains("super-admin")) {
             throw new ForbiddenException("Cannot delete Super Admin role");
         }
 
-        // Check if any staff are using this role
         StaffRole role = staffRoleRepository.findById(server, id).orElse(null);
 
         if (role == null) {
             return false;
         }
 
-        // Hierarchy check: performer must have higher authority than the target role
         if (!isSuperAdmin) {
             StaffRole performerRole = resolvePerformerRole(server, performerRoleName, false);
             assertHigherAuthority(performerRole, role);

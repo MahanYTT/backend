@@ -5,6 +5,7 @@ import gg.modl.backend.database.mongo.repository.StaffRoleMongoRepository;
 import gg.modl.backend.role.data.StaffRole;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.staff.data.Staff;
+import gg.modl.proto.modl.v1.SyncActiveStaffMember;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,11 +22,11 @@ public class SyncActiveStaffService {
     private final StaffMongoRepository staffRepository;
     private final StaffRoleMongoRepository staffRoleRepository;
 
-    public List<Map<String, Object>> getActiveStaffMembers(Server server, Map<String, String> onlinePlayerIps) {
+    public List<SyncActiveStaffMember> getActiveStaffMembers(Server server, Map<String, String> onlinePlayerIps) {
         List<Staff> staffWithMinecraft = staffRepository.findAssignedMinecraftStaff(server);
         Map<String, List<String>> permissionsByRole = loadPermissionsByRole(server, staffWithMinecraft);
 
-        List<Map<String, Object>> result = new ArrayList<>();
+        List<SyncActiveStaffMember> result = new ArrayList<>();
         for (Staff staff : staffWithMinecraft) {
             List<String> permissions = permissionsByRole.getOrDefault(staff.getRole(), List.of());
 
@@ -35,16 +36,16 @@ public class SyncActiveStaffService {
                                    && staff.getTwoFactorSessionIp() != null
                                    && staff.getTwoFactorSessionIp().equals(currentIp);
 
-            Map<String, Object> entry = new HashMap<>();
-            entry.put("minecraftUuid", staff.getAssignedMinecraftUuid());
-            entry.put("minecraftUsername", staff.getAssignedMinecraftUsername() != null ? staff.getAssignedMinecraftUsername() : "");
-            entry.put("staffUsername", staff.getUsername() != null ? staff.getUsername() : "");
-            entry.put("staffId", staff.getId());
-            entry.put("staffRole", staff.getRole() != null ? staff.getRole() : "");
-            entry.put("permissions", permissions);
-            entry.put("email", staff.getEmail() != null ? staff.getEmail() : "");
-            entry.put("twoFactorSessionValid", sessionValid);
-            result.add(entry);
+            SyncActiveStaffMember.Builder builder = SyncActiveStaffMember.newBuilder()
+                .setMinecraftUuid(staff.getAssignedMinecraftUuid() != null ? staff.getAssignedMinecraftUuid() : "")
+                .setMinecraftUsername(staff.getAssignedMinecraftUsername() != null ? staff.getAssignedMinecraftUsername() : "")
+                .setStaffUsername(staff.getUsername() != null ? staff.getUsername() : "")
+                .setStaffId(staff.getId() != null ? staff.getId() : "")
+                .setStaffRole(staff.getRole() != null ? staff.getRole() : "")
+                .setEmail(staff.getEmail() != null ? staff.getEmail() : "")
+                .setTwoFactorSessionValid(sessionValid)
+                .addAllPermissions(permissions);
+            result.add(builder.build());
         }
 
         return result;

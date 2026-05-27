@@ -7,6 +7,7 @@ import gg.modl.backend.realtime.transport.RealtimeCodec;
 import gg.modl.backend.realtime.transport.RealtimeSessionOperations;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -15,6 +16,7 @@ import org.springframework.web.socket.WebSocketSession;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class RealtimeDeployDrainManager {
     private static final String DRAIN_REASON = "Realtime deploy drain";
 
@@ -46,8 +48,9 @@ public class RealtimeDeployDrainManager {
     private void closeWithAdvice(WebSocketSession session, RealtimeConnectionState state, CloseStatus closeStatus) {
         try {
             sessionOperations.send(session, state, codec.deployDrainAdvice());
-        } catch (IOException | RuntimeException ignored) {
-            // Send failure is recorded by RealtimeSessionOperations; still request a bounded close.
+        } catch (IOException | RuntimeException e) {
+            log.warn("Failed to send deploy drain advice to session {}; will still request close: {}",
+                session.getId(), e.toString());
         }
         sessionOperations.requestClose(session, state, closeStatus, "deploy_drain");
     }

@@ -1,6 +1,9 @@
 package gg.modl.backend.server;
 
-public final class ServerResponseMessage {
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
+public class ServerResponseMessage {
     public static final String REGISTER_SUCCESS = "Registration successful. Please check your email to verify your account.";
     public static final String REGISTER_INVALID_SCHEMA = "Invalid registration data provided.";
     public static final String REGISTER_EMAIL_EXISTS = "The provided email is already in use!";

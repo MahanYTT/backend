@@ -29,17 +29,18 @@ import com.yubico.webauthn.data.UserVerificationRequirement;
 import com.yubico.webauthn.data.exception.Base64UrlException;
 import com.yubico.webauthn.exception.AssertionFailedException;
 import com.yubico.webauthn.exception.RegistrationFailedException;
+import gg.modl.backend.auth.data.WebAuthnChallenge;
+import gg.modl.backend.auth.data.WebAuthnCredential;
+import gg.modl.backend.database.mongo.repository.WebAuthnChallengeMongoRepository;
+import gg.modl.backend.database.mongo.repository.WebAuthnCredentialMongoRepository;
 import gg.modl.backend.email.EmailAddressUtil;
 import gg.modl.backend.infrastructure.exception.ExternalServiceException;
 import gg.modl.backend.infrastructure.exception.ResourceNotFoundException;
 import gg.modl.backend.infrastructure.exception.UnauthorizedException;
 import gg.modl.backend.infrastructure.exception.ValidationException;
-import gg.modl.backend.auth.data.WebAuthnChallenge;
-import gg.modl.backend.auth.data.WebAuthnCredential;
-import gg.modl.backend.database.mongo.repository.WebAuthnChallengeMongoRepository;
-import gg.modl.backend.database.mongo.repository.WebAuthnCredentialMongoRepository;
 import gg.modl.backend.server.data.CustomDomainStatus;
 import gg.modl.backend.server.data.Server;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -87,7 +88,7 @@ public class WebAuthnService {
             WebAuthnChallenge challenge = new WebAuthnChallenge();
             challenge.setId(challengeId);
             challenge.setChallengeJson(options.toJson());
-            challenge.setEmail(normalizeEmail(email));
+            challenge.setEmail(EmailAddressUtil.normalize(email));
             challenge.setExpiresAt(challengeExpiry());
             challengeRepository.saveEntity(server, challenge);
             return new StartRegistrationResult(challengeId, options.toCredentialsCreateJson());
@@ -139,15 +140,11 @@ public class WebAuthnService {
     private ByteArray userHandle(String email) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(normalizeEmail(email).getBytes(StandardCharsets.UTF_8));
+            byte[] hash = digest.digest(EmailAddressUtil.normalize(email).getBytes(StandardCharsets.UTF_8));
             return new ByteArray(hash);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 not available", e);
         }
-    }
-
-    private String normalizeEmail(String email) {
-        return EmailAddressUtil.normalize(email);
     }
 
     private Date challengeExpiry() {
@@ -155,14 +152,14 @@ public class WebAuthnService {
     }
 
     public void finishRegistration(Server server, String email, String challengeId, String responseJson, String credentialName)
-        throws Exception {
+        throws IOException {
         RelyingParty rp = buildRelyingParty(server);
         WebAuthnChallenge challenge = challengeRepository.consumeActiveChallenge(server, challengeId, new Date()).orElse(null);
         if (challenge == null) {
             throw new ResourceNotFoundException("Challenge not found or expired");
         }
 
-        String normalizedEmail = normalizeEmail(email);
+        String normalizedEmail = EmailAddressUtil.normalize(email);
         if (!normalizedEmail.equals(challenge.getEmail())) {
             throw new ValidationException("Email mismatch");
         }
@@ -225,7 +222,7 @@ public class WebAuthnService {
         RelyingParty rp = buildRelyingParty(server);
         AssertionRequest assertionRequest = rp.startAssertion(
             StartAssertionOptions.builder()
-                .username(normalizeEmail(email))
+                .username(EmailAddressUtil.normalize(email))
                 .userVerification(UserVerificationRequirement.REQUIRED)
                 .build()
         );
@@ -235,7 +232,7 @@ public class WebAuthnService {
             WebAuthnChallenge challenge = new WebAuthnChallenge();
             challenge.setId(challengeId);
             challenge.setChallengeJson(assertionRequest.toJson());
-            challenge.setEmail(normalizeEmail(email));
+            challenge.setEmail(EmailAddressUtil.normalize(email));
             challenge.setExpiresAt(challengeExpiry());
             challengeRepository.saveEntity(server, challenge);
             return new StartAuthenticationResult(challengeId, assertionRequest.toCredentialsGetJson(), true);
@@ -244,7 +241,7 @@ public class WebAuthnService {
         }
     }
 
-    public String finishAuthentication(Server server, String challengeId, String responseJson) throws Exception {
+    public String finishAuthentication(Server server, String challengeId, String responseJson) throws IOException {
         RelyingParty rp = buildRelyingParty(server);
         WebAuthnChallenge challenge = challengeRepository.consumeActiveChallenge(server, challengeId, new Date()).orElse(null);
         if (challenge == null) {

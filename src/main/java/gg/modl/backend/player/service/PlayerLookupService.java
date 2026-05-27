@@ -3,8 +3,8 @@ package gg.modl.backend.player.service;
 import gg.modl.backend.database.mongo.repository.PlayerMongoRepository;
 import gg.modl.backend.database.mongo.repository.StaffMongoRepository;
 import gg.modl.backend.infrastructure.util.PaginationHelper;
+import gg.modl.backend.infrastructure.util.UuidUtil;
 import gg.modl.backend.player.PlayerService;
-import gg.modl.backend.player.service.PlayerDataUtils;
 import gg.modl.backend.player.data.IPEntry;
 import gg.modl.backend.player.data.NoteEntry;
 import gg.modl.backend.player.data.Player;
@@ -336,7 +336,7 @@ public class PlayerLookupService {
     }
 
     private Optional<Player> findPlayerByUuid(Server server, String uuid) {
-        return playerRepository.findByMinecraftUuid(server, normalizeUuid(uuid));
+        return playerRepository.findByMinecraftUuid(server, UuidUtil.normalizeUuid(uuid));
     }
 
     private Optional<Player> findByUsername(Server server, String username) {
@@ -445,7 +445,7 @@ public class PlayerLookupService {
         List<Map<String, Object>> linkedAccounts = new ArrayList<>();
 
         if (!ips.isEmpty()) {
-            List<Player> relatedPlayers = playerRepository.findByIpAddressesExcludingUuid(server, ips, normalizeUuid(uuid), 20);
+            List<Player> relatedPlayers = playerRepository.findByIpAddressesExcludingUuid(server, ips, UuidUtil.normalizeUuid(uuid), 20);
             for (Player related : relatedPlayers) {
                 linkedAccounts.add(toPlayerProfile(server, related, types));
                 addedUuids.add(related.getMinecraftUuid().toString());
@@ -476,7 +476,4 @@ public class PlayerLookupService {
         return new MinecraftPlayerService.ServiceResponse(HttpStatus.BAD_REQUEST, Map.of("status", 400, "message", message));
     }
 
-    private static String normalizeUuid(String value) {
-        return value == null ? null : value.toLowerCase(java.util.Locale.ROOT);
-    }
 }

@@ -17,6 +17,8 @@ import java.util.Objects;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -84,7 +86,7 @@ public class AdminServerService {
         serverRepository.updateUsageStats(serverId, userCount, ticketCount, updatedAt);
     }
 
-    public Map<String, UsageSummary> getUsageStatsForServerIds(List<String> serverIds, boolean forceRefresh) {
+    public @NotNull Map<String, UsageSummary> getUsageStatsForServerIds(@Nullable List<String> serverIds, boolean forceRefresh) {
         if (serverIds == null || serverIds.isEmpty()) {
             return Map.of();
         }
@@ -118,7 +120,7 @@ public class AdminServerService {
         return usageByServerId;
     }
 
-    public Server createServer(String serverName, String customDomain, String adminEmail, String plan) {
+    public @NotNull Server createServer(@NotNull String serverName, @NotNull String customDomain, @NotNull String adminEmail, @Nullable String plan) {
         Date now = new Date();
         ServerPlan serverPlan = plan != null ? ServerPlan.valueOf(plan.trim().toUpperCase(Locale.ROOT)) : ServerPlan.FREE;
         Server server = new Server(serverName, customDomain, "server_" + customDomain, adminEmail, false, serverPlan);
@@ -147,17 +149,17 @@ public class AdminServerService {
         return serverRepository.findAdminServers(search, plan, status, sortField, sortOrder, skip, limit);
     }
 
-    public Optional<Server> findById(String id) {
+    public @NotNull Optional<Server> findById(@NotNull String id) {
         return serverRepository.findById(id);
     }
 
-    public Server save(Server server) {
+    public @NotNull Server save(@NotNull Server server) {
         Server saved = serverRepository.saveEntity(server);
         serverService.evictAllServerCaches();
         return saved;
     }
 
-    public Server updateById(String id, Map<String, Object> updateData) {
+    public @Nullable Server updateById(@NotNull String id, @NotNull Map<String, Object> updateData) {
         return serverRepository.updateAllowedFields(id, updateData).orElse(null);
     }
 

@@ -3,10 +3,6 @@ package gg.modl.backend.player.dto.response;
 import lombok.Builder;
 import lombok.Data;
 
-/**
- * Response containing punishment preview calculations.
- * Shows what the punishment would be before issuing.
- */
 @Data
 @Builder
 public class PunishmentPreviewResponse implements PunishmentPreviewView {
@@ -14,24 +10,18 @@ public class PunishmentPreviewResponse implements PunishmentPreviewView {
     private final boolean success;
     private final String message;
 
-    // Player's current status
     private final String socialStatus;
     private final String gameplayStatus;
     private final int socialPoints;
     private final int gameplayPoints;
 
-    // Offender status
-    private final String offenderStatus; // "low", "medium", or "high"
+    private final String offenderStatus;
 
-    // Punishment preview for each severity
     private final SeverityPreview lenient;
     private final SeverityPreview regular;
     private final SeverityPreview aggravated;
-
-    // For single-severity punishments
     private final SeverityPreview singleSeverity;
 
-    // Punishment type info
     private final boolean singleSeverityPunishment;
     private final boolean permanentUntilUsernameChange;
     private final boolean permanentUntilSkinChange;
@@ -50,14 +40,13 @@ public class PunishmentPreviewResponse implements PunishmentPreviewView {
     @Data
     @Builder
     public static class SeverityPreview implements PunishmentSeverityPreviewView {
-        private final String severity; // "lenient", "regular", "aggravated"
+        private final String severity;
         private final int points;
         private final long durationMs;
         private final String durationFormatted;
-        private final String punishmentType; // "ban", "mute", "kick"
+        private final String punishmentType;
         private final boolean permanent;
 
-        // New status after this punishment
         private final String newSocialStatus;
         private final String newGameplayStatus;
         private final int newSocialPoints;

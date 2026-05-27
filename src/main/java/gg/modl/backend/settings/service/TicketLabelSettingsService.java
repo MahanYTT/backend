@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -31,11 +32,11 @@ public class TicketLabelSettingsService {
     private static final int MAX_LABEL_DESCRIPTION_LENGTH = 512;
     private static final Pattern HEX_COLOR_PATTERN = Pattern.compile("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$");
 
-    public TicketLabelSettings getTicketLabelSettings(Server server) {
+    public @NotNull TicketLabelSettings getTicketLabelSettings(@NotNull Server server) {
         return getTicketLabelSettingsState(server).data();
     }
 
-    public VersionedSettings<TicketLabelSettings> getTicketLabelSettingsState(Server server) {
+    public @NotNull VersionedSettings<TicketLabelSettings> getTicketLabelSettingsState(@NotNull Server server) {
         SettingsDocumentService.RawSettingsState state = settingsDocumentService.getRawState(server, SETTINGS_TYPE_TICKET_LABELS);
         TicketLabelSettings settings = mapToTicketLabelSettings(state.data());
         return new VersionedSettings<>(settings, state.version(), state.updatedAt());

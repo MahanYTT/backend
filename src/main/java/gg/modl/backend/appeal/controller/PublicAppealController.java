@@ -2,9 +2,9 @@ package gg.modl.backend.appeal.controller;
 
 import gg.modl.backend.appeal.dto.request.AddAppealReplyRequest;
 import gg.modl.backend.appeal.dto.request.CreateAppealRequest;
-import gg.modl.backend.infrastructure.exception.ValidationException;
 import gg.modl.backend.appeal.dto.response.PublicAppealResponse;
 import gg.modl.backend.appeal.service.AppealService;
+import gg.modl.backend.infrastructure.exception.ValidationException;
 import gg.modl.backend.infrastructure.rest.RESTMappingV1;
 import gg.modl.backend.infrastructure.rest.RequestUtil;
 import gg.modl.backend.server.data.Server;
@@ -34,9 +34,9 @@ public class PublicAppealController {
         @PathVariable String id,
         HttpServletRequest request
     ) {
-        Server server = RequestUtil.getRequestServer(request);
+        final Server server = RequestUtil.getRequestServer(request);
 
-        TicketResponse appeal = appealService.getAppealById(server, id);
+        final TicketResponse appeal = appealService.getAppealById(server, id);
         return ResponseEntity.ok((Object) PublicAppealResponse.fromTicketResponse(appeal));
     }
 
@@ -45,10 +45,10 @@ public class PublicAppealController {
         @RequestBody @Valid CreateAppealRequest createRequest,
         HttpServletRequest request
     ) {
-        Server server = RequestUtil.getRequestServer(request);
+        final Server server = RequestUtil.getRequestServer(request);
 
-        TicketResponse appeal = appealService.createAppeal(server, createRequest);
-        String workflowStatus = appeal.appealWorkflowStatus() != null ? appeal.appealWorkflowStatus() : appeal.status();
+        final TicketResponse appeal = appealService.createAppeal(server, createRequest);
+        final String workflowStatus = appeal.appealWorkflowStatus() != null ? appeal.appealWorkflowStatus() : appeal.status();
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
             "success", true,
@@ -72,13 +72,13 @@ public class PublicAppealController {
         @RequestBody @Valid AddAppealReplyRequest replyRequest,
         HttpServletRequest request
     ) {
-        Server server = RequestUtil.getRequestServer(request);
+        final Server server = RequestUtil.getRequestServer(request);
 
         if (replyRequest.staff()) {
             throw new ValidationException("Public replies cannot be marked as staff");
         }
 
-        TicketReply reply = appealService.addReply(server, id, replyRequest);
+        final TicketReply reply = appealService.addReply(server, id, replyRequest);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
             "success", true,

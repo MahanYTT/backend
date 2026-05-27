@@ -5,6 +5,7 @@ import gg.modl.backend.infrastructure.proto.ProtobufMediaTypes;
 import gg.modl.proto.modl.v1.ApiError;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -51,7 +52,7 @@ public class CustomErrorController implements ErrorController {
                 .contentType(ProtobufMediaTypes.APPLICATION_X_PROTOBUF)
                 .body(ApiError.newBuilder()
                     .setStatusCode(statusCode)
-                    .setCode(machineCodeForStatus(httpStatus))
+                    .setCode(MachineErrorCodes.forStatus(httpStatus))
                     .setMessage(errorMessage)
                     .build());
         }
@@ -64,27 +65,12 @@ public class CustomErrorController implements ErrorController {
         return new ResponseEntity<>(errorResponse, httpStatus);
     }
 
-    private String machineCodeForStatus(HttpStatus status) {
-        return switch (status) {
-            case NOT_FOUND -> "NOT_FOUND";
-            case FORBIDDEN -> "PERMISSION_DENIED";
-            case UNAUTHORIZED -> "UNAUTHENTICATED";
-            case INTERNAL_SERVER_ERROR -> "INTERNAL";
-            default -> status.name();
-        };
-    }
-
     @Setter
     @Getter
+    @AllArgsConstructor
     public static class ErrorResponse {
         private int status;
         private String error;
         private String message;
-
-        public ErrorResponse(int status, String error, String message) {
-            this.status = status;
-            this.error = error;
-            this.message = message;
-        }
     }
 }

@@ -1,7 +1,7 @@
 package gg.modl.backend.settings.dto.request;
 
-import gg.modl.backend.settings.data.WebhookSettings;
 import gg.modl.backend.infrastructure.validation.RequestValidationLimits;
+import gg.modl.backend.settings.data.WebhookSettings;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

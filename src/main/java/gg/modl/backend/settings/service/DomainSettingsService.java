@@ -1,8 +1,8 @@
 package gg.modl.backend.settings.service;
 
-import gg.modl.backend.infrastructure.cors.DynamicCorsConfigurationSource;
-import gg.modl.backend.database.mongo.repository.ServerMongoRepository;
 import gg.modl.backend.cloudflare.external.CloudflareClient;
+import gg.modl.backend.database.mongo.repository.ServerMongoRepository;
+import gg.modl.backend.infrastructure.cors.DynamicCorsConfigurationSource;
 import gg.modl.backend.infrastructure.exception.ConflictException;
 import gg.modl.backend.infrastructure.exception.ResourceNotFoundException;
 import gg.modl.backend.infrastructure.exception.ValidationException;
@@ -18,6 +18,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -36,7 +38,7 @@ public class DomainSettingsService {
         "modl.gg", "modl.top", "localhost", "local", "internal", "test", "example", "invalid"
     );
 
-    public DomainSettings getDomainSettings(Server server, String requestHost) {
+    public @NotNull DomainSettings getDomainSettings(@NotNull Server server, @Nullable String requestHost) {
         Settings settings = settingsRepositoryAccess.findSettings(server, SETTINGS_TYPE_DOMAIN).orElse(null);
 
         String modlSubdomainUrl = "https://" + server.getCustomDomain() + ".modl.gg";
@@ -94,7 +96,7 @@ public class DomainSettingsService {
         return value instanceof Boolean ? (Boolean) value : false;
     }
 
-    public DomainSettings configureDomain(Server server, String customDomain) {
+    public @NotNull DomainSettings configureDomain(@NotNull Server server, @NotNull String customDomain) {
         customDomain = normalizeAndValidateCustomDomain(customDomain);
 
         String currentDomain = extractCurrentDomain(server);
@@ -212,7 +214,7 @@ public class DomainSettingsService {
         if (cfStatus == null) {
             return "pending";
         }
-        return switch (cfStatus.toLowerCase()) {
+        return switch (cfStatus.toLowerCase(Locale.ROOT)) {
             case "active" -> "active";
             case "pending", "pending_validation", "pending_issuance", "pending_deployment", "initializing" -> "pending";
             case "pending_deletion", "deleted" -> "pending";
@@ -221,7 +223,7 @@ public class DomainSettingsService {
         };
     }
 
-    public DomainSettings verifyDomain(Server server, String domain) {
+    public @NotNull DomainSettings verifyDomain(@NotNull Server server, @NotNull String domain) {
         domain = normalizeAndValidateCustomDomain(domain);
         Settings settings = settingsRepositoryAccess.findSettings(server, SETTINGS_TYPE_DOMAIN).orElse(null);
 

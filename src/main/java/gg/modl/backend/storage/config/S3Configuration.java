@@ -27,14 +27,11 @@ public class S3Configuration {
 
     @Bean
     public S3Client s3Client() {
-        if (keyId.isBlank() || applicationKey.isBlank() || endpoint.isBlank()) {
+        if (!isConfigured()) {
             return null;
         }
-
-        AwsBasicCredentials credentials = AwsBasicCredentials.create(keyId, applicationKey);
-
         return S3Client.builder()
-            .credentialsProvider(StaticCredentialsProvider.create(credentials))
+            .credentialsProvider(StaticCredentialsProvider.create(buildCredentials()))
             .endpointOverride(URI.create(endpoint))
             .region(Region.US_EAST_1)
             .forcePathStyle(true)
@@ -43,16 +40,21 @@ public class S3Configuration {
 
     @Bean
     public S3Presigner s3Presigner() {
-        if (keyId.isBlank() || applicationKey.isBlank() || endpoint.isBlank()) {
+        if (!isConfigured()) {
             return null;
         }
-
-        AwsBasicCredentials credentials = AwsBasicCredentials.create(keyId, applicationKey);
-
         return S3Presigner.builder()
-            .credentialsProvider(StaticCredentialsProvider.create(credentials))
+            .credentialsProvider(StaticCredentialsProvider.create(buildCredentials()))
             .endpointOverride(URI.create(endpoint))
             .region(Region.US_EAST_1)
             .build();
+    }
+
+    private boolean isConfigured() {
+        return !keyId.isBlank() && !applicationKey.isBlank() && !endpoint.isBlank();
+    }
+
+    private AwsBasicCredentials buildCredentials() {
+        return AwsBasicCredentials.create(keyId, applicationKey);
     }
 }

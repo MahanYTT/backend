@@ -4,7 +4,6 @@ import com.mongodb.client.result.UpdateResult;
 import gg.modl.backend.database.mongo.repository.ServerMongoRepository;
 import gg.modl.backend.database.mongo.repository.StorageFileMongoRepository;
 import gg.modl.backend.server.data.Server;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -69,10 +68,7 @@ public class StorageSyncService {
             totalSize += obj.size();
         }
 
-        List<String> s3Keys = new ArrayList<>(objects.size());
-        for (S3StorageService.S3ObjectInfo obj : objects) {
-            s3Keys.add(obj.key());
-        }
+        List<String> s3Keys = objects.stream().map(S3StorageService.S3ObjectInfo::key).toList();
         storageFileRepository.deleteByKeyNotIn(server, s3Keys);
 
         serverRepository.setStorageUsed(server.getId(), totalSize);

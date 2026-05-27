@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'gg.modl.backend'
-version = '2.2.0'
+version = '2.2.4'
 description = 'backend'
 
 java {
@@ -13,6 +13,7 @@ java {
 		languageVersion = JavaLanguageVersion.of(21)
 	}
 }
+
 
 configurations {
 	compileOnly {
@@ -23,7 +24,6 @@ configurations {
 repositories {
 	mavenCentral()
 	maven { url 'https://nexus.modl.gg/repository/maven-releases/' }
-	flatDir { dirs 'libs' }
 }
 
 subprojects {
@@ -36,6 +36,26 @@ subprojects {
 			languageVersion = JavaLanguageVersion.of(21)
 		}
 	}
+}
+
+sourceSets {
+	integrationTest {
+		java.srcDir 'src/integrationTest/java'
+		resources.srcDir 'src/integrationTest/resources'
+	}
+	e2eTest {
+		java.srcDir 'src/e2eTest/java'
+		resources.srcDir 'src/e2eTest/resources'
+	}
+}
+
+configurations {
+	integrationTestImplementation.extendsFrom testImplementation
+	integrationTestCompileOnly.extendsFrom testCompileOnly
+	integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+	e2eTestImplementation.extendsFrom testImplementation
+	e2eTestCompileOnly.extendsFrom testCompileOnly
+	e2eTestRuntimeOnly.extendsFrom testRuntimeOnly
 }
 
 dependencies {
@@ -80,8 +100,8 @@ dependencies {
     compileOnly 'org.jetbrains:annotations:26.0.2'
     compileOnly 'org.projectlombok:lombok'
     compileOnly project(':mongo-fields-annotations')
-    annotationProcessor 'org.projectlombok:lombok'
     annotationProcessor project(':mongo-fields-processor')
+    annotationProcessor 'org.projectlombok:lombok'
 
     // Testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -89,18 +109,73 @@ dependencies {
     testImplementation 'com.google.code.gson:gson:2.11.0'
     testImplementation 'org.mongodb:mongodb-driver-sync'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
+    // Integration test dependencies (Testcontainers, LocalStack, WireMock)
+    // Spring Boot 4 split the test slices out of spring-boot-test-autoconfigure into
+    // per-feature starters — @DataMongoTest lives in -data-mongodb-test, @WebMvcTest in -webmvc-test.
+    integrationTestImplementation platform('org.testcontainers:testcontainers-bom:1.21.3')
+    integrationTestImplementation 'org.springframework.boot:spring-boot-starter-data-mongodb-test'
+    integrationTestImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    integrationTestImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    integrationTestImplementation 'org.testcontainers:junit-jupiter'
+    integrationTestImplementation 'org.testcontainers:mongodb'
+    integrationTestImplementation 'org.testcontainers:localstack'
+    integrationTestImplementation 'org.wiremock:wiremock-standalone:3.10.0'
+    integrationTestImplementation sourceSets.test.output
+    integrationTestImplementation sourceSets.main.output
+    integrationTestCompileOnly 'org.projectlombok:lombok'
+    integrationTestAnnotationProcessor 'org.projectlombok:lombok'
+
+    // End-to-end staging tests
+    e2eTestImplementation sourceSets.test.output
+    e2eTestImplementation sourceSets.main.output
+    e2eTestCompileOnly 'org.projectlombok:lombok'
+    e2eTestAnnotationProcessor 'org.projectlombok:lombok'
 }
 
 tasks.withType(JavaCompile) {
     options.compilerArgs << '-parameters'
 }
 
+
 tasks.named('test') {
 	useJUnitPlatform()
-	binaryResultsDirectory = file("$buildDir/test-results/test/binary-${System.currentTimeMillis()}")
 	testLogging {
 		events 'failed', 'skipped'
 		exceptionFormat 'full'
 		showStandardStreams = false
 	}
+}
+
+tasks.register('integrationTest', Test) {
+	description = 'Runs slice + Testcontainers integration tests.'
+	group = 'verification'
+	testClassesDirs = sourceSets.integrationTest.output.classesDirs
+	classpath = sourceSets.integrationTest.runtimeClasspath
+	shouldRunAfter('test')
+	useJUnitPlatform()
+	testLogging {
+		events 'failed', 'skipped'
+		exceptionFormat 'full'
+		showStandardStreams = false
+	}
+}
+
+tasks.register('e2eTest', Test) {
+	description = 'Runs end-to-end tests against a deployed staging environment. Requires .env.test or MODL_* env vars.'
+	group = 'verification'
+	testClassesDirs = sourceSets.e2eTest.output.classesDirs
+	classpath = sourceSets.e2eTest.runtimeClasspath
+	useJUnitPlatform()
+	testLogging {
+		events 'failed', 'skipped', 'passed'
+		exceptionFormat 'full'
+		showStandardStreams = false
+	}
+}
+
+tasks.named('check') {
+	dependsOn 'integrationTest'
 }

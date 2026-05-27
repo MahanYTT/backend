@@ -22,9 +22,12 @@ import jakarta.servlet.http.Cookie;
 import java.util.Date;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+@ExtendWith(MockitoExtension.class)
 class PanelAuthControllerTest {
 
     @Test

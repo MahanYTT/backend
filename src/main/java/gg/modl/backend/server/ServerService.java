@@ -2,8 +2,8 @@ package gg.modl.backend.server;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import gg.modl.backend.infrastructure.config.ModlCorsProperties;
 import gg.modl.backend.database.mongo.repository.ServerMongoRepository;
+import gg.modl.backend.infrastructure.config.ModlCorsProperties;
 import gg.modl.backend.server.data.ProvisioningStatus;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.server.data.ServerPlan;

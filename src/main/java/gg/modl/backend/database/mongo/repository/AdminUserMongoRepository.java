@@ -2,9 +2,9 @@ package gg.modl.backend.database.mongo.repository;
 
 import gg.modl.backend.admin.data.AdminUser;
 import gg.modl.backend.database.mongo.AbstractGlobalMongoRepository;
-import gg.modl.backend.email.EmailAddressUtil;
 import gg.modl.backend.database.mongo.TenantMongoAccess;
 import gg.modl.backend.database.mongo.fields.AdminUserFields;
+import gg.modl.backend.email.EmailAddressUtil;
 import java.util.Date;
 import java.util.Objects;
 import java.util.Optional;

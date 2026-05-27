@@ -1,6 +1,7 @@
 package gg.modl.backend.settings.data;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.Locale;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -56,21 +57,21 @@ public class PunishmentType {
         if (ordinal != null && ordinal >= 0 && ordinal <= 5) {
             return ordinal >= 2;
         }
-        return category != null && category.toLowerCase().contains("ban");
+        return category != null && category.toLowerCase(Locale.ROOT).contains("ban");
     }
 
     public boolean isMute() {
         if (ordinal != null && ordinal >= 0 && ordinal <= 5) {
             return ordinal == 1;
         }
-        return category != null && category.toLowerCase().contains("mute");
+        return category != null && category.toLowerCase(Locale.ROOT).contains("mute");
     }
 
     public boolean isKick() {
         if (ordinal != null && ordinal >= 0 && ordinal <= 5) {
             return ordinal == 0;
         }
-        return category != null && category.toLowerCase().contains("kick");
+        return category != null && category.toLowerCase(Locale.ROOT).contains("kick");
     }
 
     public int getPointsForSeverity(String severity) {

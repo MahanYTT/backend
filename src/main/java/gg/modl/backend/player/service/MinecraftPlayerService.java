@@ -3,37 +3,40 @@ package gg.modl.backend.player.service;
 import gg.modl.backend.database.mongo.repository.PlayerMongoRepository;
 import gg.modl.backend.database.mongo.repository.StaffMongoRepository;
 import gg.modl.backend.database.mongo.repository.TicketMongoRepository;
+import gg.modl.backend.infrastructure.util.IdGenerator;
+import gg.modl.backend.infrastructure.util.PaginationHelper;
+import gg.modl.backend.infrastructure.util.UuidUtil;
 import gg.modl.backend.player.PlayerService;
 import gg.modl.backend.player.data.NoteEntry;
 import gg.modl.backend.player.data.Player;
 import gg.modl.backend.player.data.UsernameEntry;
-import gg.modl.backend.player.data.punishment.Punishment;
 import gg.modl.backend.player.data.punishment.EnforcementCategory;
-import gg.modl.backend.player.data.punishment.PunishmentModificationType;
+import gg.modl.backend.player.data.punishment.Punishment;
 import gg.modl.backend.player.data.punishment.PunishmentData;
+import gg.modl.backend.player.data.punishment.PunishmentModificationType;
 import gg.modl.backend.player.data.punishment.PunishmentStatus;
 import gg.modl.backend.player.dto.request.AcknowledgeNotificationsRequest;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.settings.data.PunishmentType;
 import gg.modl.backend.settings.service.PunishmentTypeIndex;
 import gg.modl.backend.settings.service.PunishmentTypeService;
-import gg.modl.backend.infrastructure.util.PaginationHelper;
-import gg.modl.backend.player.service.PlayerDataUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import gg.modl.backend.infrastructure.util.IdGenerator;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class MinecraftPlayerService {
     private final PlayerService playerService;
     private final PlayerMongoRepository playerRepository;
@@ -44,28 +47,6 @@ public class MinecraftPlayerService {
     private final AccountLinkingService accountLinkingService;
     private final IssuerNameResolver issuerNameResolver;
     private final StaffMongoRepository staffRepository;
-
-    public MinecraftPlayerService(
-        PlayerService playerService,
-        PlayerMongoRepository playerRepository,
-        TicketMongoRepository ticketRepository,
-        PlayerStatusCalculator statusCalculator,
-        PunishmentTypeService punishmentTypeService,
-        PunishmentLifecycleService punishmentLifecycleService,
-        AccountLinkingService accountLinkingService,
-        IssuerNameResolver issuerNameResolver,
-        StaffMongoRepository staffRepository
-    ) {
-        this.playerService = playerService;
-        this.playerRepository = playerRepository;
-        this.ticketRepository = ticketRepository;
-        this.statusCalculator = statusCalculator;
-        this.punishmentTypeService = punishmentTypeService;
-        this.punishmentLifecycleService = punishmentLifecycleService;
-        this.accountLinkingService = accountLinkingService;
-        this.issuerNameResolver = issuerNameResolver;
-        this.staffRepository = staffRepository;
-    }
 
     public ServiceResponse login(
         Server server,
@@ -238,7 +219,7 @@ public class MinecraftPlayerService {
     }
 
     private Optional<Player> findPlayerByUuid(Server server, String uuid) {
-        return playerRepository.findByMinecraftUuid(server, normalizeUuid(uuid));
+        return playerRepository.findByMinecraftUuid(server, UuidUtil.normalizeUuid(uuid));
     }
 
     private Map<String, String> resolveIssuersForPlayer(Server server, Player player) {
@@ -253,12 +234,12 @@ public class MinecraftPlayerService {
     }
 
     public Map<String, Object> disconnect(Server server, String minecraftUuid, long sessionDurationMs) {
-        playerRepository.markDisconnected(server, normalizeUuid(minecraftUuid), sessionDurationMs);
+        playerRepository.markDisconnected(server, UuidUtil.normalizeUuid(minecraftUuid), sessionDurationMs);
         return Map.of("status", 200, "success", true);
     }
 
     public Map<String, Object> updateServer(Server server, String minecraftUuid, String serverName) {
-        playerRepository.updateLastServer(server, normalizeUuid(minecraftUuid), serverName);
+        playerRepository.updateLastServer(server, UuidUtil.normalizeUuid(minecraftUuid), serverName);
         return Map.of("status", 200, "success", true);
     }
 
@@ -413,7 +394,7 @@ public class MinecraftPlayerService {
     }
 
     public Map<String, Object> getPlayerReports(Server server, String uuid) {
-        List<Map<String, Object>> reports = ticketRepository.findReportedPlayerTickets(server, normalizeUuid(uuid), 50)
+        List<Map<String, Object>> reports = ticketRepository.findReportedPlayerTickets(server, UuidUtil.normalizeUuid(uuid), 50)
             .stream()
             .map(ticket -> {
                 Map<String, Object> report = new LinkedHashMap<>();
@@ -442,7 +423,7 @@ public class MinecraftPlayerService {
         boolean proxy,
         boolean hosting
     ) {
-        playerService.updateIpGeoData(server, normalizeUuid(minecraftUuid), ip, Map.of(
+        playerService.updateIpGeoData(server, UuidUtil.normalizeUuid(minecraftUuid), ip, Map.of(
             "country", country != null ? country : "",
             "region", region != null ? region : "",
             "asn", asn != null ? asn : "",
@@ -474,7 +455,7 @@ public class MinecraftPlayerService {
             if (punishmentType == null) {
                 shouldPardon = isActive || isUnstarted;
             } else {
-                String requestedType = punishmentType.toLowerCase();
+                String requestedType = punishmentType.toLowerCase(Locale.ROOT);
                 String effectiveCategory = statusCalculator.getEffectiveCategory(punishment, types);
                 shouldPardon = ("ban".equals(requestedType) && EnforcementCategory.BAN.name().equals(effectiveCategory) && (isActive || isUnstarted))
                                || ("mute".equals(requestedType) && EnforcementCategory.MUTE.name().equals(effectiveCategory) && (isActive || isUnstarted));
@@ -524,7 +505,4 @@ public class MinecraftPlayerService {
     public record ServiceResponse(HttpStatus status, Map<String, Object> body) {
     }
 
-    private static String normalizeUuid(String value) {
-        return value == null ? null : value.toLowerCase(java.util.Locale.ROOT);
-    }
 }

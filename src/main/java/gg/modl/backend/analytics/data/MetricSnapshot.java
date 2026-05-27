@@ -3,13 +3,15 @@ package gg.modl.backend.analytics.data;
 import gg.modl.backend.database.CollectionName;
 import gg.modl.backend.database.mongo.codegen.GenerateMongoFields;
 import java.util.Date;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 @Document(collection = CollectionName.METRIC_SNAPSHOTS)
-@Data
+@Getter
+@Setter
 @GenerateMongoFields
 public class MetricSnapshot {
     @Id

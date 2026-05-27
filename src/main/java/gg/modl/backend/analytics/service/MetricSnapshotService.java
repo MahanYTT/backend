@@ -22,14 +22,14 @@ public class MetricSnapshotService {
     @Scheduled(cron = "0 */5 * * * *")
     public void takeSnapshot() {
         try {
-            Instant nowInstant = Instant.now();
-            Date now = Date.from(nowInstant);
-            // Truncate to 5-minute boundary
-            long epochSeconds = nowInstant.getEpochSecond();
-            Date fiveTruncated = Date.from(Instant.ofEpochSecond((epochSeconds / 300) * 300));
-            Date fiveMinutesAgo = Date.from(nowInstant.minus(5, ChronoUnit.MINUTES));
+            final Instant nowInstant = Instant.now();
+            final Date now = Date.from(nowInstant);
+            // Truncate to 5-minute boundary for upsert deduplication.
+            final long epochSeconds = nowInstant.getEpochSecond();
+            final Date fiveTruncated = Date.from(Instant.ofEpochSecond((epochSeconds / 300) * 300));
+            final Date fiveMinutesAgo = Date.from(nowInstant.minus(5, ChronoUnit.MINUTES));
 
-            long activeServers = serverRepository.countActiveSince(fiveMinutesAgo);
+            final long activeServers = serverRepository.countActiveSince(fiveMinutesAgo);
 
             metricSnapshotRepository.upsertSnapshot(
                 fiveTruncated,
@@ -44,7 +44,7 @@ public class MetricSnapshotService {
     @Scheduled(cron = "0 0 3 * * *")
     public void purgeOldSnapshots() {
         try {
-            Date oneDayAgo = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
+            final Date oneDayAgo = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
             metricSnapshotRepository.deleteOlderThan(oneDayAgo);
             serverInstanceSnapshotRepository.deleteOlderThan(oneDayAgo);
             log.debug("Purged metric snapshots and server instance snapshots older than 24 hours");

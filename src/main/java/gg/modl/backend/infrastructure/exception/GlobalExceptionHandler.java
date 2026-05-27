@@ -54,7 +54,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BaseApplicationException.class)
     public ResponseEntity<?> handleApplicationException(BaseApplicationException ex, HttpServletRequest request) {
         if (protobufErrorResponseWriter.shouldWriteProtobuf(request)) {
-            return protobufError(ex.getStatus(), machineCodeForStatus(ex.getStatus()), ex.getMessage());
+            return protobufError(ex.getStatus(), MachineErrorCodes.forStatus(ex.getStatus()), ex.getMessage());
         }
         return ResponseEntity.status(ex.getStatus())
             .body(new ErrorResponseDTO(ex.getStatus().value(), ex.getMessage()));
@@ -76,6 +76,19 @@ public class GlobalExceptionHandler {
         HttpServletRequest request
     ) {
         String message = "Missing required parameter: " + ex.getParameterName();
+        if (protobufErrorResponseWriter.shouldWriteProtobuf(request)) {
+            return protobufError(HttpStatus.BAD_REQUEST, "INVALID_ARGUMENT", message);
+        }
+        return ResponseEntity.badRequest()
+            .body(new ErrorResponseDTO(400, message));
+    }
+
+    @ExceptionHandler(org.springframework.web.bind.MissingRequestHeaderException.class)
+    public ResponseEntity<?> handleMissingHeader(
+        org.springframework.web.bind.MissingRequestHeaderException ex,
+        HttpServletRequest request
+    ) {
+        String message = "Missing required header: " + ex.getHeaderName();
         if (protobufErrorResponseWriter.shouldWriteProtobuf(request)) {
             return protobufError(HttpStatus.BAD_REQUEST, "INVALID_ARGUMENT", message);
         }
@@ -215,17 +228,4 @@ public class GlobalExceptionHandler {
             .body(error);
     }
 
-    private String machineCodeForStatus(HttpStatus status) {
-        return switch (status) {
-            case BAD_REQUEST -> "INVALID_ARGUMENT";
-            case UNAUTHORIZED -> "UNAUTHENTICATED";
-            case FORBIDDEN -> "PERMISSION_DENIED";
-            case NOT_FOUND -> "NOT_FOUND";
-            case CONFLICT -> "CONFLICT";
-            case TOO_MANY_REQUESTS -> "RATE_LIMITED";
-            case UNSUPPORTED_MEDIA_TYPE -> "UNSUPPORTED_MEDIA_TYPE";
-            case NOT_ACCEPTABLE -> "NOT_ACCEPTABLE";
-            default -> status.is5xxServerError() ? "INTERNAL" : status.name();
-        };
-    }
 }

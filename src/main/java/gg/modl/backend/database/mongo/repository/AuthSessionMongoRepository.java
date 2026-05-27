@@ -2,9 +2,9 @@ package gg.modl.backend.database.mongo.repository;
 
 import gg.modl.backend.auth.session.AuthSessionData;
 import gg.modl.backend.database.CollectionName;
-import gg.modl.backend.email.EmailAddressUtil;
 import gg.modl.backend.database.mongo.TenantMongoAccess;
 import gg.modl.backend.database.mongo.fields.AuthSessionDataFields;
+import gg.modl.backend.email.EmailAddressUtil;
 import gg.modl.backend.server.data.Server;
 import java.util.Date;
 import java.util.List;

@@ -1,20 +1,34 @@
 package gg.modl.backend.player.service;
 
+import com.google.protobuf.Struct;
+import com.google.protobuf.Value;
 import gg.modl.backend.database.mongo.repository.MigrationMongoRepository;
 import gg.modl.backend.database.mongo.repository.PlayerMongoRepository;
 import gg.modl.backend.database.mongo.repository.ServerInstanceSnapshotMongoRepository;
 import gg.modl.backend.database.mongo.repository.ServerMongoRepository;
 import gg.modl.backend.database.mongo.repository.StaffMongoRepository;
+import gg.modl.backend.infrastructure.util.UuidUtil;
 import gg.modl.backend.migration.data.MigrationStatus;
 import gg.modl.backend.player.data.Player;
+import gg.modl.backend.player.data.punishment.EnforcementCategory;
 import gg.modl.backend.player.data.punishment.Punishment;
 import gg.modl.backend.player.data.punishment.PunishmentModification;
 import gg.modl.backend.player.data.punishment.PunishmentModificationType;
-import gg.modl.backend.player.data.punishment.EnforcementCategory;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.settings.data.PunishmentType;
+import gg.modl.backend.settings.service.PunishmentTypeIndex;
 import gg.modl.backend.settings.service.PunishmentTypeService;
 import gg.modl.backend.staff.data.Staff;
+import gg.modl.proto.modl.v1.SimplePunishment;
+import gg.modl.proto.modl.v1.SyncActiveStaffMember;
+import gg.modl.proto.modl.v1.SyncData;
+import gg.modl.proto.modl.v1.SyncMigrationTask;
+import gg.modl.proto.modl.v1.SyncModifiedPunishment;
+import gg.modl.proto.modl.v1.SyncPendingPunishment;
+import gg.modl.proto.modl.v1.SyncPlayerNotification;
+import gg.modl.proto.modl.v1.SyncResponse;
+import gg.modl.proto.modl.v1.SyncStaff2faVerification;
+import gg.modl.proto.modl.v1.SyncStaffNotification;
 import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -26,11 +40,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -50,7 +64,7 @@ public class MinecraftSyncService {
     private final SyncStaffEventService syncStaffEventService;
     private final SyncActiveStaffService syncActiveStaffService;
 
-    public Map<String, Object> sync(
+    public SyncResponse sync(
         Server server,
         String lastSyncTimestamp,
         List<OnlinePlayerInput> onlinePlayers,
@@ -74,15 +88,17 @@ public class MinecraftSyncService {
                            : now.minusSeconds(30);
 
         List<PunishmentType> types = punishmentTypeService.getPunishmentTypes(server);
-        List<Map<String, Object>> pendingPunishments = new ArrayList<>();
-        List<Map<String, Object>> recentlyModifiedPunishments = new ArrayList<>();
-        List<Map<String, Object>> playerNotifications = new ArrayList<>();
+        Map<Integer, PunishmentType> typesByOrdinal = PunishmentTypeIndex.byOrdinal(types);
+        List<SyncPendingPunishment> pendingPunishments = new ArrayList<>();
+        List<SyncModifiedPunishment> recentlyModifiedPunishments = new ArrayList<>();
+        List<SyncPlayerNotification> playerNotifications = new ArrayList<>();
+        List<SyncStaffNotification> pardonNotifications = new ArrayList<>();
 
         Set<String> onlineUuids = new HashSet<>();
         if (onlinePlayers != null) {
             for (OnlinePlayerInput onlinePlayer : onlinePlayers) {
                 if (onlinePlayer.uuid() != null) {
-                    onlineUuids.add(normalizeUuid(onlinePlayer.uuid()));
+                    onlineUuids.add(UuidUtil.normalizeUuid(onlinePlayer.uuid()));
                 }
             }
         }
@@ -121,7 +137,6 @@ public class MinecraftSyncService {
                 String uuid = player.getMinecraftUuid().toString();
                 String username = PlayerDataUtils.extractLatestUsername(player.getUsernames());
 
-                // Pass 1: classify all punishments in a single iteration
                 Set<String> categoriesWithActiveStarted = new HashSet<>();
                 Map<String, Punishment> oldestUnstartedPerCategory = new LinkedHashMap<>();
                 Set<String> pardonedCategories = new HashSet<>();
@@ -134,11 +149,13 @@ public class MinecraftSyncService {
                         .stream()
                         .anyMatch(mod -> mod.date() != null && mod.date().toInstant().isAfter(lastSync));
                     if (recentlyModified) {
-                        recentlyModifiedPunishments.add(Map.of(
-                            "minecraftUuid", uuid,
-                            "username", username,
-                            "punishment", PunishmentMapper.toSimplePunishment(punishment, types, statusCalculator, resolvedIssuers)
-                        ));
+                        recentlyModifiedPunishments.add(SyncModifiedPunishment.newBuilder()
+                            .setMinecraftUuid(uuid)
+                            .setUsername(username)
+                            .setPunishment(SimplePunishmentProtoMapper.toPunishmentWithModifications(punishment))
+                            .build());
+
+                        collectPardonNotifications(punishment, username, lastSync, typesByOrdinal, resolvedIssuers, pardonNotifications);
                     }
 
                     boolean recentlyPardoned = punishment.getModifications()
@@ -150,13 +167,8 @@ public class MinecraftSyncService {
                         pardonedCategories.add(category);
                     }
 
-                    // Unstarted kicks (ordinal 0)
                     if (punishment.getTypeOrdinal() == 0 && punishment.getStarted() == null) {
-                        pendingPunishments.add(Map.of(
-                            "minecraftUuid", uuid,
-                            "username", username,
-                            "punishment", PunishmentMapper.toSimplePunishment(punishment, types, statusCalculator, resolvedIssuers)
-                        ));
+                        pendingPunishments.add(toPendingPunishment(uuid, username, punishment, typesByOrdinal, resolvedIssuers));
                         continue;
                     }
 
@@ -164,19 +176,13 @@ public class MinecraftSyncService {
                         continue;
                     }
 
-                    // Newly issued active punishments since last sync
                     if (punishment.getStarted() != null
                         && punishment.getIssued() != null
                         && punishment.getIssued().toInstant().isAfter(lastSync)
                         && category != null) {
-                        pendingPunishments.add(Map.of(
-                            "minecraftUuid", uuid,
-                            "username", username,
-                            "punishment", PunishmentMapper.toSimplePunishment(punishment, types, statusCalculator, resolvedIssuers)
-                        ));
+                        pendingPunishments.add(toPendingPunishment(uuid, username, punishment, typesByOrdinal, resolvedIssuers));
                     }
 
-                    // Track active started vs unstarted per category
                     if (category != null && punishment.getStarted() != null) {
                         categoriesWithActiveStarted.add(category);
                     } else if (category != null && punishment.getStarted() == null) {
@@ -187,18 +193,12 @@ public class MinecraftSyncService {
                     }
                 }
 
-                // Add oldest unstarted punishments that don't have an active started one in the same category
                 for (Map.Entry<String, Punishment> entry : oldestUnstartedPerCategory.entrySet()) {
                     if (!categoriesWithActiveStarted.contains(entry.getKey())) {
-                        pendingPunishments.add(Map.of(
-                            "minecraftUuid", uuid,
-                            "username", username,
-                            "punishment", PunishmentMapper.toSimplePunishment(entry.getValue(), types, statusCalculator, resolvedIssuers)
-                        ));
+                        pendingPunishments.add(toPendingPunishment(uuid, username, entry.getValue(), typesByOrdinal, resolvedIssuers));
                     }
                 }
 
-                // Pass 2: find active replacements for recently pardoned categories
                 if (!pardonedCategories.isEmpty()) {
                     for (Punishment punishment : player.getPunishments()) {
                         if (!statusCalculator.isPunishmentActive(punishment) || punishment.getStarted() == null) {
@@ -207,11 +207,7 @@ public class MinecraftSyncService {
 
                         String category = statusCalculator.getEffectiveCategory(punishment, types);
                         if (category != null && pardonedCategories.contains(category)) {
-                            pendingPunishments.add(Map.of(
-                                "minecraftUuid", uuid,
-                                "username", username,
-                                "punishment", PunishmentMapper.toSimplePunishment(punishment, types, statusCalculator, resolvedIssuers)
-                            ));
+                            pendingPunishments.add(toPendingPunishment(uuid, username, punishment, typesByOrdinal, resolvedIssuers));
                             pardonedCategories.remove(category);
                         }
                     }
@@ -223,29 +219,29 @@ public class MinecraftSyncService {
                         if (!(item instanceof Map<?, ?> notification)) {
                             continue;
                         }
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> typedNotification = (Map<String, Object>) notification;
-                        Map<String, Object> payload = new HashMap<>(typedNotification);
-                        payload.put("targetPlayerUuid", uuid);
-                        playerNotifications.add(payload);
+                        playerNotifications.add(toPlayerNotification(uuid, notification));
                     }
                 }
             }
         }
 
         pendingPunishments = deduplicatePendingPunishments(pendingPunishments);
-        List<Map<String, Object>> staffNotifications = syncStaffEventService.collectStaffEvents(server, lastSync, types, recentlyModifiedPunishments);
+
+        List<SyncStaffNotification> staffNotifications = new ArrayList<>(
+            syncStaffEventService.collectStaffEvents(server, lastSync, types)
+        );
+        staffNotifications.addAll(pardonNotifications);
 
         Map<String, String> onlinePlayerIps = new HashMap<>();
         if (onlinePlayers != null) {
             for (OnlinePlayerInput onlinePlayer : onlinePlayers) {
                 if (onlinePlayer.uuid() != null && onlinePlayer.ipAddress() != null) {
-                    onlinePlayerIps.put(normalizeUuid(onlinePlayer.uuid()), onlinePlayer.ipAddress());
+                    onlinePlayerIps.put(UuidUtil.normalizeUuid(onlinePlayer.uuid()), onlinePlayer.ipAddress());
                 }
             }
         }
 
-        List<Map<String, Object>> activeStaffMembers = syncActiveStaffService.getActiveStaffMembers(server, onlinePlayerIps);
+        List<SyncActiveStaffMember> activeStaffMembers = syncActiveStaffService.getActiveStaffMembers(server, onlinePlayerIps);
 
         if (chatLogs != null && !chatLogs.isEmpty()) {
             minecraftChatLogService.submitChatLogs(server, chatLogs.stream()
@@ -270,27 +266,28 @@ public class MinecraftSyncService {
                 .toList());
         }
 
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("pendingPunishments", pendingPunishments);
-        data.put("recentlyStartedPunishments", List.of());
-        data.put("recentlyModifiedPunishments", recentlyModifiedPunishments);
-        data.put("playerNotifications", playerNotifications);
-        data.put("staffNotifications", staffNotifications);
-        data.put("activeStaffMembers", activeStaffMembers);
-        data.put("pendingStatWipes", List.of());
-        data.put("staffPermissionsUpdatedAt", server.getStaffPermissionsUpdatedAt() != null
-                                              ? server.getStaffPermissionsUpdatedAt().getTime()
-                                              : null);
-        data.put("punishmentTypesUpdatedAt", server.getPunishmentTypesUpdatedAt() != null
-                                             ? server.getPunishmentTypesUpdatedAt().getTime()
-                                             : null);
+        SyncData.Builder dataBuilder = SyncData.newBuilder()
+            .addAllPendingPunishments(pendingPunishments)
+            .addAllRecentlyModifiedPunishments(recentlyModifiedPunishments)
+            .addAllPlayerNotifications(playerNotifications)
+            .addAllActiveStaffMembers(activeStaffMembers)
+            .addAllStaffNotifications(staffNotifications);
+
+        if (server.getStaffPermissionsUpdatedAt() != null) {
+            dataBuilder.setStaffPermissionsUpdatedAt(server.getStaffPermissionsUpdatedAt().getTime());
+        }
+        if (server.getPunishmentTypesUpdatedAt() != null) {
+            dataBuilder.setPunishmentTypesUpdatedAt(server.getPunishmentTypesUpdatedAt().getTime());
+        }
 
         try {
             List<Staff> pendingStaff = staffRepository.findWithPendingTwoFactorDelivery(server);
             if (!pendingStaff.isEmpty()) {
-                data.put("staff2faVerifications", pendingStaff.stream()
-                    .map(staff -> Map.<String, Object>of("minecraftUuid", staff.getAssignedMinecraftUuid()))
-                    .toList());
+                for (Staff staff : pendingStaff) {
+                    dataBuilder.addStaff2FaVerifications(SyncStaff2faVerification.newBuilder()
+                        .setMinecraftUuid(staff.getAssignedMinecraftUuid() != null ? staff.getAssignedMinecraftUuid() : "")
+                        .build());
+                }
                 staffRepository.clearPendingTwoFactorDelivery(server);
             }
         } catch (Exception e) {
@@ -299,10 +296,10 @@ public class MinecraftSyncService {
 
         try {
             Optional<MigrationStatus> activeMigration = migrationRepository.findActiveMigration(server);
-            activeMigration.ifPresent(migration -> data.put("migrationTask", Map.of(
-                "taskId", migration.getTaskId(),
-                "type", migration.getType()
-            )));
+            activeMigration.ifPresent(migration -> dataBuilder.setMigrationTask(SyncMigrationTask.newBuilder()
+                .setTaskId(migration.getTaskId() != null ? migration.getTaskId() : "")
+                .setType(migration.getType() != null ? migration.getType() : "")
+                .build()));
         } catch (Exception e) {
             log.warn("Failed to check active migration during sync", e);
         }
@@ -327,44 +324,100 @@ public class MinecraftSyncService {
             }
         }
 
-        return Map.of(
-            "timestamp", now.toString(),
-            "data", data
-        );
+        return SyncResponse.newBuilder()
+            .setTimestamp(now.toString())
+            .setData(dataBuilder.build())
+            .build();
+    }
+
+    private SyncPendingPunishment toPendingPunishment(
+        String uuid,
+        String username,
+        Punishment punishment,
+        Map<Integer, PunishmentType> typesByOrdinal,
+        Map<String, String> resolvedIssuers
+    ) {
+        return SyncPendingPunishment.newBuilder()
+            .setMinecraftUuid(uuid)
+            .setUsername(username)
+            .setPunishment(SimplePunishmentProtoMapper.toSimplePunishment(punishment, typesByOrdinal, statusCalculator, resolvedIssuers))
+            .build();
+    }
+
+    private SyncPlayerNotification toPlayerNotification(String targetPlayerUuid, Map<?, ?> notification) {
+        SyncPlayerNotification.Builder builder = SyncPlayerNotification.newBuilder()
+            .setTargetPlayerUuid(targetPlayerUuid);
+
+        Object id = notification.get("id");
+        if (id != null) {
+            builder.setId(id.toString());
+        }
+        Object message = notification.get("message");
+        if (message != null) {
+            builder.setMessage(message.toString());
+        }
+        Object type = notification.get("type");
+        if (type != null) {
+            builder.setType(type.toString());
+        }
+        Object timestamp = notification.get("timestamp");
+        if (timestamp instanceof Number number) {
+            builder.setTimestamp(number.longValue());
+        } else if (timestamp instanceof Date date) {
+            builder.setTimestamp(date.getTime());
+        }
+        Object data = notification.get("data");
+        if (data instanceof Map<?, ?> dataMap) {
+            builder.setData(StructMapper.toStruct(dataMap));
+        }
+        return builder.build();
+    }
+
+    private void collectPardonNotifications(
+        Punishment punishment,
+        String username,
+        Instant lastSync,
+        Map<Integer, PunishmentType> typesByOrdinal,
+        Map<String, String> resolvedIssuers,
+        List<SyncStaffNotification> notifications
+    ) {
+        PunishmentType punishmentType = typesByOrdinal.get(punishment.getTypeOrdinal());
+        String punishmentTypeName = punishmentType != null ? punishmentType.getName() : "punishment";
+
+        for (PunishmentModification modification : punishment.getModifications()) {
+            if (modification.date() == null || !modification.date().toInstant().isAfter(lastSync)) {
+                continue;
+            }
+            if (!PunishmentModificationType.isPardon(modification.type())) {
+                continue;
+            }
+            String pardoner = issuerNameResolver.resolve(modification.issuerId(), modification.issuerName(), resolvedIssuers);
+            notifications.add(SyncStaffNotification.newBuilder()
+                .setId("pardon_" + punishment.getId())
+                .setType("PUNISHMENT_PARDONED")
+                .setMessage(pardoner + ": pardoned " + username + "'s " + punishmentTypeName)
+                .setTimestamp(modification.date().getTime())
+                .build());
+        }
     }
 
     private void markOfflinePlayers(Server server, Set<String> onlineUuids, String serverName, Date logoutTime) {
         playerRepository.markStalePlayersOffline(server, onlineUuids, serverName, logoutTime);
     }
 
-    private List<Map<String, Object>> deduplicatePendingPunishments(List<Map<String, Object>> punishments) {
-        Map<String, Map<String, Object>> oldestByPlayerCategory = new LinkedHashMap<>();
-        List<Map<String, Object>> result = new ArrayList<>();
+    private List<SyncPendingPunishment> deduplicatePendingPunishments(List<SyncPendingPunishment> punishments) {
+        Map<String, SyncPendingPunishment> oldestByPlayerCategory = new LinkedHashMap<>();
+        List<SyncPendingPunishment> result = new ArrayList<>();
 
-        for (Map<String, Object> entry : punishments) {
-            String uuid = entry.get("minecraftUuid") instanceof String value ? value : "";
-            if (!(entry.get("punishment") instanceof Map<?, ?> rawPunishment)) {
-                result.add(entry);
-                continue;
-            }
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> punishment = (Map<String, Object>) rawPunishment;
-            String category = punishment.get("category") instanceof String value ? value : null;
+        for (SyncPendingPunishment entry : punishments) {
+            SimplePunishment punishment = entry.getPunishment();
+            String category = punishment.getCategory();
 
             if (EnforcementCategory.BAN.name().equals(category) || EnforcementCategory.MUTE.name().equals(category)) {
-                String key = uuid + "|" + category;
-                Map<String, Object> existing = oldestByPlayerCategory.get(key);
-                if (existing == null) {
+                String key = entry.getMinecraftUuid() + "|" + category;
+                SyncPendingPunishment existing = oldestByPlayerCategory.get(key);
+                if (existing == null || punishment.getIssuedAt() < existing.getPunishment().getIssuedAt()) {
                     oldestByPlayerCategory.put(key, entry);
-                } else if (existing.get("punishment") instanceof Map<?, ?> rawExisting) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> existingPunishment = (Map<String, Object>) rawExisting;
-                    long existingIssued = existingPunishment.get("issuedAt") instanceof Number number ? number.longValue() : 0L;
-                    long currentIssued = punishment.get("issuedAt") instanceof Number number ? number.longValue() : 0L;
-                    if (currentIssued < existingIssued) {
-                        oldestByPlayerCategory.put(key, entry);
-                    }
                 }
             } else {
                 result.add(entry);
@@ -375,7 +428,7 @@ public class MinecraftSyncService {
         return result;
     }
 
-    public Map<String, Object> syncV2(
+    public SyncResponse syncV2(
         Server server,
         String lastSyncTimestamp,
         List<OnlinePlayerInput> onlinePlayers,
@@ -384,7 +437,7 @@ public class MinecraftSyncService {
         List<CommandLogInput> commandLogs,
         String clientIp
     ) {
-        Map<String, Object> result = sync(
+        SyncResponse response = sync(
             server,
             lastSyncTimestamp,
             onlinePlayers,
@@ -395,39 +448,59 @@ public class MinecraftSyncService {
             clientIp
         );
 
-        convertUrlsToRelativePaths(result);
-
-        return result;
+        return relativizeTicketUrls(response);
     }
 
-    @SuppressWarnings("unchecked")
-    private void convertUrlsToRelativePaths(Map<String, Object> result) {
-        Object dataObj = result.get("data");
-        if (!(dataObj instanceof Map<?, ?> data)) {
-            return;
-        }
+    private SyncResponse relativizeTicketUrls(SyncResponse response) {
+        SyncData.Builder dataBuilder = response.getData().toBuilder();
 
-        convertTicketUrlsInNotifications((List<Map<String, Object>>) data.get("staffNotifications"));
-        convertTicketUrlsInNotifications((List<Map<String, Object>>) data.get("playerNotifications"));
+        rewriteStaffNotificationUrls(dataBuilder);
+        rewritePlayerNotificationUrls(dataBuilder);
+
+        return response.toBuilder()
+            .setData(dataBuilder.build())
+            .build();
     }
 
-    @SuppressWarnings("unchecked")
-    private void convertTicketUrlsInNotifications(List<Map<String, Object>> notifications) {
-        if (notifications == null) {
-            return;
-        }
-
-        for (Map<String, Object> notification : notifications) {
-            Object dataObj = notification.get("data");
-            if (!(dataObj instanceof Map<?, ?> rawData)) {
+    private void rewriteStaffNotificationUrls(SyncData.Builder dataBuilder) {
+        for (int i = 0; i < dataBuilder.getStaffNotificationsCount(); i++) {
+            SyncStaffNotification notification = dataBuilder.getStaffNotifications(i);
+            if (!notification.hasData()) {
                 continue;
             }
-            Map<String, Object> data = (Map<String, Object>) rawData;
-            Object ticketUrl = data.get("ticketUrl");
-            if (ticketUrl instanceof String url) {
-                data.put("ticketUrl", extractRelativePath(url));
+            Struct updated = withRelativeTicketUrl(notification.getData());
+            if (updated != notification.getData()) {
+                dataBuilder.setStaffNotifications(i, notification.toBuilder().setData(updated).build());
             }
         }
+    }
+
+    private void rewritePlayerNotificationUrls(SyncData.Builder dataBuilder) {
+        for (int i = 0; i < dataBuilder.getPlayerNotificationsCount(); i++) {
+            SyncPlayerNotification notification = dataBuilder.getPlayerNotifications(i);
+            if (!notification.hasData()) {
+                continue;
+            }
+            Struct updated = withRelativeTicketUrl(notification.getData());
+            if (updated != notification.getData()) {
+                dataBuilder.setPlayerNotifications(i, notification.toBuilder().setData(updated).build());
+            }
+        }
+    }
+
+    private Struct withRelativeTicketUrl(Struct data) {
+        Value ticketUrl = data.getFieldsOrDefault("ticketUrl", null);
+        if (ticketUrl == null || ticketUrl.getKindCase() != Value.KindCase.STRING_VALUE) {
+            return data;
+        }
+        String original = ticketUrl.getStringValue();
+        String relative = extractRelativePath(original);
+        if (relative.equals(original)) {
+            return data;
+        }
+        return data.toBuilder()
+            .putFields("ticketUrl", Value.newBuilder().setStringValue(relative).build())
+            .build();
     }
 
     private String extractRelativePath(String fullUrl) {
@@ -451,7 +524,4 @@ public class MinecraftSyncService {
     public record CommandLogInput(String uuid, String username, String command, long timestamp, String server) {
     }
 
-    private static String normalizeUuid(String value) {
-        return value == null ? null : value.toLowerCase(java.util.Locale.ROOT);
-    }
 }

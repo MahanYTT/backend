@@ -1,7 +1,6 @@
 package gg.modl.backend.registration.cleanup;
 
 import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -25,26 +24,24 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class RegistrationCleanupServiceTest {
     private static final Instant NOW = Instant.parse("2026-05-01T12:00:00Z");
 
-    private ServerMongoRepository serverRepository;
-    private ServerDatabaseMongoRepository serverDatabaseRepository;
-    private ServerService serverService;
-    private PermissionService permissionService;
-    private StaffService staffService;
+    @Mock private ServerMongoRepository serverRepository;
+    @Mock private ServerDatabaseMongoRepository serverDatabaseRepository;
+    @Mock private ServerService serverService;
+    @Mock private PermissionService permissionService;
+    @Mock private StaffService staffService;
     private RegistrationCleanupService cleanupService;
 
     @BeforeEach
     void setUp() {
-        serverRepository = mock(ServerMongoRepository.class);
-        serverDatabaseRepository = mock(ServerDatabaseMongoRepository.class);
-        serverService = mock(ServerService.class);
-        permissionService = mock(PermissionService.class);
-        staffService = mock(StaffService.class);
-
         RegistrationCleanupProperties properties = new RegistrationCleanupProperties();
         properties.setEnabled(true);
         properties.setDryRun(false);

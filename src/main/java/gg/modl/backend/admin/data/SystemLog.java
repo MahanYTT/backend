@@ -4,12 +4,14 @@ import gg.modl.backend.database.mongo.codegen.GenerateMongoFields;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
-@Data
+@Getter
+@Setter
 @Document(collection = "system_logs")
 @GenerateMongoFields
 public class SystemLog {

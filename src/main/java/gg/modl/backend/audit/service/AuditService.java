@@ -46,8 +46,8 @@ public class AuditService {
 
     public List<PunishmentAuditResponse> getPunishments(
         Server server, int limit, boolean canRollbackOnly) {
-        Date thirtyDaysAgo = DateRangeUtil.getStartDate("30d");
-        List<AuditLog> logs =
+        final Date thirtyDaysAgo = DateRangeUtil.getStartDate("30d");
+        final List<AuditLog> logs =
             auditRepository.findPunishmentLogs(server, thirtyDaysAgo, limit, canRollbackOnly);
 
         return logs.stream().map(logEntry -> {
@@ -103,13 +103,13 @@ public class AuditService {
     }
 
     public List<ActivePunishmentResponse> getPunishmentsList(Server server, String statusFilter) {
-        List<PunishmentType> punishmentTypes = punishmentTypeService.getPunishmentTypes(server);
-        Map<Integer, PunishmentType> typesByOrdinal = PunishmentTypeIndex.byOrdinal(punishmentTypes);
-        List<Document> rows = auditRepository.aggregatePunishmentRows(server);
-        Map<String, String> resolvedIssuers = resolveIssuerNames(server, rows);
+        final List<PunishmentType> punishmentTypes = punishmentTypeService.getPunishmentTypes(server);
+        final Map<Integer, PunishmentType> typesByOrdinal = PunishmentTypeIndex.byOrdinal(punishmentTypes);
+        final List<Document> rows = auditRepository.aggregatePunishmentRows(server);
+        final Map<String, String> resolvedIssuers = resolveIssuerNames(server, rows);
 
-        boolean filterActive = "active".equalsIgnoreCase(statusFilter);
-        boolean filterInactive = "inactive".equalsIgnoreCase(statusFilter);
+        final boolean filterActive = "active".equalsIgnoreCase(statusFilter);
+        final boolean filterInactive = "inactive".equalsIgnoreCase(statusFilter);
 
         List<ActivePunishmentResponse> results = new ArrayList<>();
         for (Document row : rows) {
@@ -133,17 +133,17 @@ public class AuditService {
     private ActivePunishmentResponse mapToActivePunishmentResponse(
         Server server, Document row, Punishment punishment, boolean active,
         Map<Integer, PunishmentType> typesByOrdinal, Map<String, String> resolvedIssuers) {
-        int typeOrdinal = row.getInteger("typeOrdinal", 0);
-        String typeName = punishmentTypeService.getPunishmentTypeName(server, typeOrdinal);
-        PunishmentType matchedType = typesByOrdinal.get(typeOrdinal);
-        String category = matchedType != null
+        final int typeOrdinal = row.getInteger("typeOrdinal", 0);
+        final String typeName = punishmentTypeService.getPunishmentTypeName(server, typeOrdinal);
+        final PunishmentType matchedType = typesByOrdinal.get(typeOrdinal);
+        final String category = matchedType != null
             ? (matchedType.getCategory() != null ? matchedType.getCategory() : "Administrative")
             : "Administrative";
 
-        Document data = row.get("data", Document.class);
-        String reason = data != null ? data.getString("reason") : null;
-        Long duration = extractDuration(data);
-        List<ActivePunishmentResponse.EvidenceItem> evidenceItems = extractEvidenceItems(row);
+        final Document data = row.get("data", Document.class);
+        final String reason = data != null ? data.getString("reason") : null;
+        final Long duration = extractDuration(data);
+        final List<ActivePunishmentResponse.EvidenceItem> evidenceItems = extractEvidenceItems(row);
 
         List<String> ticketIds = row.getList("attachedTicketIds", String.class);
         if (ticketIds == null) {
@@ -279,17 +279,17 @@ public class AuditService {
 
     public boolean rollbackPunishment(
         Server server, String punishmentId, String reason, String performerUsername) {
-        AuditLog punishment = auditRepository.findAuditLogById(server, punishmentId);
+        final AuditLog punishment = auditRepository.findAuditLogById(server, punishmentId);
         if (punishment == null) {
             return false;
         }
 
-        Map<String, Object> metadata = punishment.getMetadata();
+        final Map<String, Object> metadata = punishment.getMetadata();
         if (metadata != null && Boolean.FALSE.equals(metadata.get("canRollback"))) {
             throw new ValidationException("This punishment cannot be rolled back");
         }
 
-        AuditLog rollbackLog = AuditLog.builder()
+        final AuditLog rollbackLog = AuditLog.builder()
             .created(new Date())
             .level("moderation")
             .source(performerUsername)
@@ -318,15 +318,15 @@ public class AuditService {
 
     public Map<String, Object> getDatabaseTable(
         Server server, String table, int limit, int skip) {
-        List<String> allowedTables =
+        final List<String> allowedTables =
             List.of("players", "tickets", "staff", "punishments", "logs", "settings");
         if (!allowedTables.contains(table)) {
             throw new ValidationException("Invalid table name");
         }
 
-        String collectionName = getCollectionName(table);
-        List<Document> documents = auditRepository.readTable(server, collectionName, limit, skip);
-        long total = auditRepository.countCollection(server, collectionName);
+        final String collectionName = getCollectionName(table);
+        final List<Document> documents = auditRepository.readTable(server, collectionName, limit, skip);
+        final long total = auditRepository.countCollection(server, collectionName);
 
         return Map.of(
             "data", documents,
@@ -349,7 +349,7 @@ public class AuditService {
 
     public int rollbackAllPunishmentsByStaff(
         Server server, String staffUsername, String reason, String performerUsername) {
-        String staffId = staffService.getStaffByUsername(server, staffUsername)
+        final String staffId = staffService.getStaffByUsername(server, staffUsername)
             .map(StaffResponse::id)
             .orElse(null);
         return rollbackPunishmentsInternal(
@@ -360,10 +360,10 @@ public class AuditService {
         Server server, String staffUsername, String staffId,
         Date startDate, Date endDate, String reason, String performerUsername) {
         try {
-            List<Document> players =
+            final List<Document> players =
                 auditRepository.findPlayersForRollback(server, staffUsername, staffId);
-            Date now = new Date();
-            Map<String, Object> rollbackModification = new HashMap<>();
+            final Date now = new Date();
+            final Map<String, Object> rollbackModification = new HashMap<>();
             rollbackModification.put("type", PunishmentModificationType.ROLLBACK.name());
             rollbackModification.put("timestamp", now);
             rollbackModification.put("performedBy", performerUsername);
@@ -387,13 +387,13 @@ public class AuditService {
         Server server, Document player, String staffUsername, String staffId,
         Date startDate, Date endDate, String reason, String performerUsername,
         Map<String, Object> rollbackModification, Date now) {
-        String playerId = player.getString("_id");
-        List<Document> punishments = player.getList("punishments", Document.class);
+        final String playerId = player.getString("_id");
+        final List<Document> punishments = player.getList("punishments", Document.class);
         if (punishments == null) {
             return 0;
         }
 
-        String playerName = AuditDocumentUtil.extractPlayerNameFromDoc(player);
+        final String playerName = AuditDocumentUtil.extractPlayerNameFromDoc(player);
         int count = 0;
 
         for (Document punishment : punishments) {
@@ -407,12 +407,12 @@ public class AuditService {
                 continue;
             }
 
-            String punishmentId = punishment.getString("_id");
+            final String punishmentId = punishment.getString("_id");
             auditRepository.appendRollbackModification(
                 server, playerId, punishmentId, rollbackModification);
 
-            int typeOrdinal = punishment.getInteger("typeOrdinal", 0);
-            String typeName =
+            final int typeOrdinal = punishment.getInteger("typeOrdinal", 0);
+            final String typeName =
                 punishmentTypeService.getPunishmentTypeName(server, typeOrdinal);
 
             AuditLog rollbackLog = AuditLog.builder()
@@ -457,7 +457,7 @@ public class AuditService {
     public int rollbackPunishmentsByDateRange(
         Server server, String staffUsername, Date startDate, Date endDate,
         String reason, String performerUsername) {
-        String staffId = staffService.getStaffByUsername(server, staffUsername)
+        final String staffId = staffService.getStaffByUsername(server, staffUsername)
             .map(StaffResponse::id)
             .orElse(null);
         return rollbackPunishmentsInternal(
@@ -496,7 +496,7 @@ public class AuditService {
     public int bulkSetExpirationByType(
         Server server, List<Integer> typeOrdinals, long newDurationMs,
         String reason, String performerUsername) {
-        Long effectiveDuration = newDurationMs <= 0 ? null : newDurationMs;
+        final Long effectiveDuration = newDurationMs <= 0 ? null : newDurationMs;
 
         return processBulkPunishmentAction(server, typeOrdinals, reason, performerUsername,
             "bulk set expiration", (ctx) -> {
@@ -518,37 +518,37 @@ public class AuditService {
         Server server, List<Integer> typeOrdinals, String reason,
         String performerUsername, String operationName, BulkPunishmentAction action) {
         try {
-            List<Document> players = auditRepository.findPlayersForBulkAction(server, typeOrdinals);
-            Date now = new Date();
+            final List<Document> players = auditRepository.findPlayersForBulkAction(server, typeOrdinals);
+            final Date now = new Date();
             int count = 0;
 
-            Map<Integer, String> typeNameCache = new HashMap<>();
+            final Map<Integer, String> typeNameCache = new HashMap<>();
             for (int ordinal : typeOrdinals) {
                 typeNameCache.put(ordinal, punishmentTypeService.getPunishmentTypeName(server, ordinal));
             }
 
             for (Document player : players) {
-                String playerId = player.getString("_id");
-                List<Document> punishments = player.getList("punishments", Document.class);
+                final String playerId = player.getString("_id");
+                final List<Document> punishments = player.getList("punishments", Document.class);
                 if (punishments == null) {
                     continue;
                 }
 
-                String playerName = AuditDocumentUtil.extractPlayerNameFromDoc(player);
+                final String playerName = AuditDocumentUtil.extractPlayerNameFromDoc(player);
 
                 for (Document punishmentDoc : punishments) {
-                    int typeOrdinal = punishmentDoc.getInteger("typeOrdinal", 0);
+                    final int typeOrdinal = punishmentDoc.getInteger("typeOrdinal", 0);
                     if (!typeOrdinals.contains(typeOrdinal)) {
                         continue;
                     }
 
-                    Punishment punishment = reconstructPunishment(punishmentDoc);
+                    final Punishment punishment = reconstructPunishment(punishmentDoc);
                     if (!statusCalculator.isPunishmentActive(punishment)) {
                         continue;
                     }
 
-                    String punishmentId = punishmentDoc.getString("_id");
-                    String typeName = typeNameCache.getOrDefault(typeOrdinal, "Unknown");
+                    final String punishmentId = punishmentDoc.getString("_id");
+                    final String typeName = typeNameCache.getOrDefault(typeOrdinal, "Unknown");
 
                     BulkActionContext ctx = new BulkActionContext(
                         playerId, playerName, punishmentId, punishmentDoc, typeName, typeOrdinal, now);

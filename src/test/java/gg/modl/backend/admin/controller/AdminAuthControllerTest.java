@@ -1,5 +1,6 @@
 package gg.modl.backend.admin.controller;
 
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -18,9 +19,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+@ExtendWith(MockitoExtension.class)
 class AdminAuthControllerTest {
 
     @Test
@@ -43,8 +47,8 @@ class AdminAuthControllerTest {
             new Cookie(RESTSecurityRole.ADMIN_SESSION_COOKIE, "admin-session-2")
         );
         when(adminAuthService.extractSessionIds(request)).thenReturn(new LinkedHashSet<>(List.of("admin-session-1", "admin-session-2")));
-        when(sessionService.findValidAdminSession("admin-session-1")).thenReturn(Optional.of(firstSession));
-        when(sessionService.findValidAdminSession("admin-session-2")).thenReturn(Optional.of(secondSession));
+        lenient().when(sessionService.findValidAdminSession("admin-session-1")).thenReturn(Optional.of(firstSession));
+        lenient().when(sessionService.findValidAdminSession("admin-session-2")).thenReturn(Optional.of(secondSession));
 
         controller.logout(request, response);
 

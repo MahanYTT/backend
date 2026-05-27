@@ -3,9 +3,9 @@ package gg.modl.backend.admin.controller;
 import gg.modl.backend.admin.dto.request.UpdateServerRequest;
 import gg.modl.backend.admin.service.AdminServerService;
 import gg.modl.backend.infrastructure.rest.RESTMappingV1;
-import gg.modl.backend.server.data.Server;
 import gg.modl.backend.infrastructure.util.PaginationHelper;
 import gg.modl.backend.infrastructure.validation.RequestValidationLimits;
+import gg.modl.backend.server.data.Server;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
@@ -118,7 +118,7 @@ public class AdminServerController {
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateServer(@PathVariable String id, @RequestBody @Valid UpdateServerRequest request) {
-        if (!serverService.findById(id).isPresent()) {
+        if (serverService.findById(id).isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("success", false, "error", "Server not found"));
         }
 
@@ -155,7 +155,7 @@ public class AdminServerController {
 
     @PutMapping("/{id}/stats")
     public ResponseEntity<?> updateServerStats(@PathVariable String id, @RequestBody @Valid UpdateStatsRequest request) {
-        if (!serverService.findById(id).isPresent()) {
+        if (serverService.findById(id).isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("success", false, "error", "Server not found"));
         }
 

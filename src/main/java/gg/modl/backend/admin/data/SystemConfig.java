@@ -5,12 +5,14 @@ import gg.modl.backend.database.mongo.codegen.GenerateMongoFields;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
-@Data
+@Getter
+@Setter
 @Document(collection = "system_config")
 @GenerateMongoFields
 public class SystemConfig {
@@ -37,7 +39,8 @@ public class SystemConfig {
     @Field("updatedAt")
     private Date updatedAt = new Date();
 
-    @Data
+    @Getter
+    @Setter
     public static class GeneralConfig {
         @Field("systemName")
         private String systemName = "modl Admin";
@@ -53,7 +56,8 @@ public class SystemConfig {
         private String maintenanceMessage = "System under maintenance. Please check back later.";
     }
 
-    @Data
+    @Getter
+    @Setter
     public static class LoggingConfig {
         @Field("pm2LoggingEnabled")
         private boolean pm2LoggingEnabled = true;
@@ -63,7 +67,8 @@ public class SystemConfig {
         private int maxLogSizePerDay = 1000000;
     }
 
-    @Data
+    @Getter
+    @Setter
     public static class SecurityConfig {
         @Field("sessionTimeout")
         private int sessionTimeout = 60;
@@ -83,7 +88,8 @@ public class SystemConfig {
         private List<String> corsOrigins = new ArrayList<>(List.of(Constants.Domain.HTTPS_ADMIN));
     }
 
-    @Data
+    @Getter
+    @Setter
     public static class NotificationsConfig {
         @Field("emailNotifications")
         private boolean emailNotifications = true;
@@ -99,7 +105,8 @@ public class SystemConfig {
         private String discordWebhook = "";
     }
 
-    @Data
+    @Getter
+    @Setter
     public static class PerformanceConfig {
         @Field("cacheTtl")
         private int cacheTtl = 300;
@@ -115,7 +122,8 @@ public class SystemConfig {
         private boolean enableCaching = true;
     }
 
-    @Data
+    @Getter
+    @Setter
     public static class FeaturesConfig {
         @Field("analyticsEnabled")
         private boolean analyticsEnabled = true;

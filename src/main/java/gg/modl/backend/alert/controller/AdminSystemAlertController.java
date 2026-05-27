@@ -39,7 +39,7 @@ public class AdminSystemAlertController {
 
     @PostMapping
     public ResponseEntity<?> createAlert(@RequestBody @Valid CreateSystemAlertRequest request) {
-        SystemAlert alert = alertService.createAlert(request, getAdminEmail());
+        final SystemAlert alert = alertService.createAlert(request, getAdminEmail());
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
             "success", true,
             "data", AdminSystemAlertResponse.from(alert),
@@ -65,7 +65,7 @@ public class AdminSystemAlertController {
     }
 
     private String getAdminEmail() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
             return "unknown";
         }

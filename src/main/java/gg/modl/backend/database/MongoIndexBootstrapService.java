@@ -72,7 +72,7 @@ public class MongoIndexBootstrapService {
         log.info("Tenant index bootstrap complete succeeded={} failed={}", succeeded, failed);
     }
 
-    private void createGlobalIndexes(MongoTemplate template) {
+    private static void createGlobalIndexes(MongoTemplate template) {
         ensureIndexes(template, CollectionName.MODL_SERVERS, List.of(
             IndexSpec.standard("uidx_servers_serverName", doc("serverName", 1), true, false),
             IndexSpec.standard("uidx_servers_customDomain", doc("customDomain", 1), true, false),
@@ -278,7 +278,7 @@ public class MongoIndexBootstrapService {
         ));
     }
 
-    private void ensureIndexes(MongoTemplate template, String collectionName, List<IndexSpec> specs) {
+    private static void ensureIndexes(MongoTemplate template, String collectionName, List<IndexSpec> specs) {
         IndexOperations indexOps = template.indexOps(collectionName);
         List<IndexInfo> existingIndexes = indexOps.getIndexInfo();
         for (IndexSpec spec : specs) {
@@ -289,7 +289,7 @@ public class MongoIndexBootstrapService {
         }
     }
 
-    private void createIndex(IndexOperations indexOps, IndexSpec spec) {
+    private static void createIndex(IndexOperations indexOps, IndexSpec spec) {
         Index index = new Index().named(spec.name());
 
         for (Map.Entry<String, Object> entry : spec.keys().entrySet()) {
@@ -310,14 +310,14 @@ public class MongoIndexBootstrapService {
         indexOps.createIndex(index);
     }
 
-    private Sort.Direction directionFrom(Object value) {
+    private static Sort.Direction directionFrom(Object value) {
         if (value instanceof Number number) {
             return number.intValue() < 0 ? Sort.Direction.DESC : Sort.Direction.ASC;
         }
         throw new ValidationException("Unsupported index direction value: " + value);
     }
 
-    private boolean hasEquivalentIndex(List<IndexInfo> existingIndexes, IndexSpec spec) {
+    private static boolean hasEquivalentIndex(List<IndexInfo> existingIndexes, IndexSpec spec) {
         List<IndexField> expectedFields = fieldsFor(spec.keys());
         for (IndexInfo existingIndex : existingIndexes) {
             if (!existingIndex.getIndexFields().equals(expectedFields)) {
@@ -341,7 +341,7 @@ public class MongoIndexBootstrapService {
         return false;
     }
 
-    private List<IndexField> fieldsFor(Document keys) {
+    private static List<IndexField> fieldsFor(Document keys) {
         List<IndexField> fields = new ArrayList<>(keys.size());
         for (Map.Entry<String, Object> entry : keys.entrySet()) {
             fields.add(IndexField.create(entry.getKey(), directionFrom(entry.getValue())));
@@ -349,7 +349,7 @@ public class MongoIndexBootstrapService {
         return fields;
     }
 
-    private Document doc(String field, int direction) {
+    private static Document doc(String field, int direction) {
         return new Document(field, direction);
     }
 

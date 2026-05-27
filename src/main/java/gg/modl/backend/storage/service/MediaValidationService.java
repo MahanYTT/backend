@@ -2,6 +2,7 @@ package gg.modl.backend.storage.service;
 
 import gg.modl.backend.infrastructure.util.ByteFormatUtil;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
@@ -61,7 +62,7 @@ public class MediaValidationService {
             return new ValidationResult(false, "Content type is required");
         }
 
-        String lowerName = fileName.toLowerCase();
+        String lowerName = fileName.toLowerCase(Locale.ROOT);
         for (String ext : DANGEROUS_EXTENSIONS) {
             if (lowerName.endsWith(ext)) {
                 log.warn("Blocked presign request for potentially dangerous file: {}", fileName);

@@ -267,7 +267,6 @@ public class DashboardService {
         return names;
     }
 
-
     public List<ActivityItemResponse> getRecentActivity(Server server, String staffEmail, int limit, int days) {
         List<ActivityItemResponse> activities = new ArrayList<>();
 
@@ -360,10 +359,9 @@ public class DashboardService {
                     continue;
                 }
 
-
                 String username = PlayerDataUtils.extractLatestUsername(row.get(PlayerFields.USERNAMES));
-                String punishmentTypeName = punishmentTypeNameByOrdinal.getOrDefault(punishment.getTypeOrdinal(), "Unknown");
                 String playerUuid = PlayerDataUtils.extractMinecraftUuid(row);
+                String punishmentTypeName = punishmentTypeNameByOrdinal.getOrDefault(punishment.getTypeOrdinal(), "Unknown");
 
                 activities.add(new ActivityItemResponse(
                     "punishment-" + punishment.getId(),

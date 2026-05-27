@@ -3,7 +3,6 @@ package gg.modl.backend.replay.service;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,25 +25,24 @@ import java.util.Date;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class LegacyReplayCleanupServiceTest {
     private static final Instant NOW = Instant.parse("2026-05-18T12:00:00Z");
 
-    private ServerMongoRepository serverRepository;
-    private ReplayMongoRepository replayRepository;
-    private ReplayRetentionSettingsService replayRetentionSettingsService;
-    private S3StorageService s3StorageService;
-    private StorageMetadataService storageMetadataService;
+    @Mock private ServerMongoRepository serverRepository;
+    @Mock private ReplayMongoRepository replayRepository;
+    @Mock private ReplayRetentionSettingsService replayRetentionSettingsService;
+    @Mock private S3StorageService s3StorageService;
+    @Mock private StorageMetadataService storageMetadataService;
     private LegacyReplayCleanupService cleanupService;
     private Server server;
 
     @BeforeEach
     void setUp() {
-        serverRepository = mock(ServerMongoRepository.class);
-        replayRepository = mock(ReplayMongoRepository.class);
-        replayRetentionSettingsService = mock(ReplayRetentionSettingsService.class);
-        s3StorageService = mock(S3StorageService.class);
-        storageMetadataService = mock(StorageMetadataService.class);
         LegacyReplayCleanupProperties properties = new LegacyReplayCleanupProperties();
         properties.setEnabled(true);
         properties.setBatchSize(100);

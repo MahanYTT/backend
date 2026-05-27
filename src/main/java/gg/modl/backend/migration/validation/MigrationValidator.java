@@ -6,9 +6,12 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -17,7 +20,7 @@ public class MigrationValidator {
     private static final Pattern UUID_PATTERN = Pattern.compile(RegExpConstants.UUID);
     private static final Pattern UUID_NO_DASHES_PATTERN = Pattern.compile("^[0-9a-fA-F]{32}$");
 
-    public ValidationResult validateMigrationData(Map<String, Object> data) {
+    public @NotNull ValidationResult validateMigrationData(@Nullable Map<String, Object> data) {
         if (data == null) {
             return ValidationResult.error("Migration data is null");
         }
@@ -82,28 +85,21 @@ public class MigrationValidator {
         return ValidationResult.success(players.size());
     }
 
-    public boolean isValidUuid(String uuid) {
+    public boolean isValidUuid(@Nullable String uuid) {
         if (uuid == null || uuid.isBlank()) {
             return false;
         }
 
-        if (UUID_PATTERN.matcher(uuid).matches()) {
-            return true;
-        }
-
-        if (UUID_NO_DASHES_PATTERN.matcher(uuid).matches()) {
-            return true;
-        }
-
-        return false;
+        return UUID_PATTERN.matcher(uuid).matches()
+            || UUID_NO_DASHES_PATTERN.matcher(uuid).matches();
     }
 
-    public String normalizeUuid(String uuid) {
+    public @Nullable String normalizeUuid(@Nullable String uuid) {
         if (uuid == null) {
             return null;
         }
 
-        String cleaned = uuid.replace("-", "").toLowerCase();
+        String cleaned = uuid.replace("-", "").toLowerCase(Locale.ROOT);
 
         if (cleaned.length() != 32) {
             return uuid;
@@ -116,7 +112,7 @@ public class MigrationValidator {
                cleaned.substring(20);
     }
 
-    public String sanitizeString(String input, int maxLength) {
+    public @Nullable String sanitizeString(@Nullable String input, int maxLength) {
         if (input == null) {
             return null;
         }
@@ -131,7 +127,7 @@ public class MigrationValidator {
             .replace("\r", "");
     }
 
-    public Date parseDate(Object dateObj) {
+    public @Nullable Date parseDate(@Nullable Object dateObj) {
         if (dateObj == null) {
             return null;
         }
@@ -171,7 +167,7 @@ public class MigrationValidator {
         return null;
     }
 
-    public boolean isValidIpAddress(String ip) {
+    public boolean isValidIpAddress(@Nullable String ip) {
         if (ip == null || ip.isBlank()) {
             return false;
         }

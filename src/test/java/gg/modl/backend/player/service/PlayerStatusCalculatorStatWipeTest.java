@@ -2,7 +2,6 @@ package gg.modl.backend.player.service;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
 
 import gg.modl.backend.player.data.punishment.Punishment;
 import gg.modl.backend.player.data.punishment.PunishmentModification;
@@ -14,18 +13,21 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class PlayerStatusCalculatorStatWipeTest {
 
+    @Mock private PunishmentTypeService punishmentTypeService;
+    @Mock private OffenderThresholdSettingsService offenderThresholdSettingsService;
     private PlayerStatusCalculator calculator;
 
     @BeforeEach
     void setUp() {
         // isPunishmentNaturallyExpired doesn't use these services
-        calculator = new PlayerStatusCalculator(
-            mock(PunishmentTypeService.class),
-            mock(OffenderThresholdSettingsService.class)
-        );
+        calculator = new PlayerStatusCalculator(punishmentTypeService, offenderThresholdSettingsService);
     }
 
     @Test

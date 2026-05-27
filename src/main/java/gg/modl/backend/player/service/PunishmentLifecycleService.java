@@ -3,10 +3,14 @@ package gg.modl.backend.player.service;
 import gg.modl.backend.database.mongo.repository.PlayerMongoRepository;
 import gg.modl.backend.database.mongo.repository.PunishmentMongoRepository;
 import gg.modl.backend.database.mongo.repository.StaffMongoRepository;
-import gg.modl.backend.ticket.service.TicketService;
+import gg.modl.backend.infrastructure.exception.ForbiddenException;
 import gg.modl.backend.infrastructure.exception.ResourceNotFoundException;
-import gg.modl.backend.player.controller.MinecraftPunishmentController.MinecraftCreatePunishmentRequest;
+import gg.modl.backend.infrastructure.exception.ValidationException;
+import gg.modl.backend.infrastructure.util.IdGenerator;
+import gg.modl.backend.infrastructure.util.MongoKeyUtils;
+import gg.modl.backend.player.controller.v1.MinecraftPunishmentController.MinecraftCreatePunishmentRequest;
 import gg.modl.backend.player.data.Player;
+import gg.modl.backend.player.data.punishment.EnforcementCategory;
 import gg.modl.backend.player.data.punishment.Punishment;
 import gg.modl.backend.player.data.punishment.PunishmentData;
 import gg.modl.backend.player.data.punishment.PunishmentEvidence;
@@ -14,34 +18,31 @@ import gg.modl.backend.player.data.punishment.PunishmentModification;
 import gg.modl.backend.player.data.punishment.PunishmentModificationType;
 import gg.modl.backend.player.data.punishment.PunishmentNote;
 import gg.modl.backend.player.data.punishment.PunishmentStatus;
-import gg.modl.backend.player.data.punishment.EnforcementCategory;
 import gg.modl.backend.player.dto.request.CreateEvidenceRequest;
 import gg.modl.backend.player.dto.request.CreateNoteRequest;
 import gg.modl.backend.player.dto.request.CreatePunishmentRequest;
 import gg.modl.backend.player.service.PunishmentQueryService.PunishmentContext;
 import gg.modl.backend.player.service.PunishmentQueryService.PunishmentOperationResult;
 import gg.modl.backend.player.service.PunishmentQueryService.PunishmentOperationStatus;
+import gg.modl.backend.role.service.PermissionService;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.settings.data.PunishmentType;
 import gg.modl.backend.settings.service.OffenderThresholdSettingsService;
 import gg.modl.backend.settings.service.PunishmentTypeIndex;
 import gg.modl.backend.settings.service.PunishmentTypeService;
+import gg.modl.backend.settings.service.WebhookSettingsService;
+import gg.modl.backend.staff.data.Staff;
+import gg.modl.backend.ticket.service.TicketService;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import gg.modl.backend.infrastructure.exception.ForbiddenException;
-import gg.modl.backend.infrastructure.exception.ValidationException;
-import gg.modl.backend.infrastructure.util.MongoKeyUtils;
-import gg.modl.backend.role.service.PermissionService;
-import gg.modl.backend.staff.data.Staff;
-import gg.modl.backend.infrastructure.util.IdGenerator;
-import gg.modl.backend.settings.service.WebhookSettingsService;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -72,7 +73,7 @@ public class PunishmentLifecycleService {
         PunishmentType type = punishmentTypeService.getPunishmentTypeByOrdinal(server, typeOrdinal)
             .orElseThrow(() -> new ValidationException("Invalid punishment type"));
 
-        String applyPermission = "punishment.apply." + type.getName().toLowerCase().replace(" ", "-");
+        String applyPermission = "punishment.apply." + type.getName().toLowerCase(Locale.ROOT).replace(" ", "-");
         String role = staffRepository.findByEmailIgnoreCase(server, email)
             .map(Staff::getRole)
             .orElse(null);

@@ -196,7 +196,6 @@ public class PublicTicketController {
     ) {
         Server server = RequestUtil.getRequestServer(request);
 
-        // Check if ticket is hidden
         Optional<Ticket> rawTicket = ticketService.getTicketRaw(server, id);
         if (rawTicket.isEmpty() || rawTicket.get().isHidden()) {
             return ResponseEntity.notFound().build();
@@ -229,7 +228,6 @@ public class PublicTicketController {
     ) {
         Server server = RequestUtil.getRequestServer(request);
 
-        // Check if ticket is hidden or requires email auth
         Optional<Ticket> rawTicket = ticketService.getTicketRaw(server, id);
         if (rawTicket.isEmpty() || rawTicket.get().isHidden()) {
             return ResponseEntity.notFound().build();

@@ -173,10 +173,6 @@ public class TicketContentService {
         return dedupeAttachments(merged);
     }
 
-    public Map<String, Object> sanitizeMapKeysForMongo(Map<String, Object> map) {
-        return MongoKeyUtils.sanitizeKeys(map);
-    }
-
     public Map<String, Object> sanitizeFormDataForDataStore(Map<String, Object> formData) {
         Map<String, Object> sanitized = MongoKeyUtils.sanitizeKeys(formData);
         if (sanitized == null) {

@@ -9,6 +9,7 @@ import gg.modl.backend.settings.data.PunishmentType;
 import gg.modl.backend.settings.service.OffenderThresholdSettingsService;
 import gg.modl.backend.settings.service.PunishmentTypeService;
 import java.util.List;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
@@ -41,7 +42,7 @@ public class PunishmentDurationCalculator {
         int relevantPoints = isSocial ? currentStatus.socialPoints() : currentStatus.gameplayPoints();
         String offenseLevel = thresholds.getOffenseLevelInternal(relevantPoints, isSocial);
 
-        String internalSeverity = switch (severity.toLowerCase()) {
+        String internalSeverity = switch (severity.toLowerCase(Locale.ROOT)) {
             case "low", "lenient" -> "low";
             case "regular" -> "regular";
             case "aggravated", "severe" -> "severe";

@@ -41,5 +41,4 @@ public class SubscriptionExpiryService {
             log.error("Error checking for expired subscriptions", exception);
         }
     }
-
 }

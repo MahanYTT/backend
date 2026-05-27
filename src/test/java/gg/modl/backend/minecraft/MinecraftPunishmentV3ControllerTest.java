@@ -8,7 +8,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -37,8 +36,8 @@ import gg.modl.backend.infrastructure.proto.ProtobufMediaTypes;
 import gg.modl.backend.infrastructure.rest.RESTMappingV1;
 import gg.modl.backend.infrastructure.rest.RESTMappingV3;
 import gg.modl.backend.infrastructure.rest.RequestAttribute;
-import gg.modl.backend.player.controller.MinecraftPunishmentController;
-import gg.modl.backend.player.controller.MinecraftPunishmentV3Controller;
+import gg.modl.backend.player.controller.v1.MinecraftPunishmentController;
+import gg.modl.backend.player.controller.v3.MinecraftPunishmentV3Controller;
 import gg.modl.backend.player.dto.response.PunishmentPreviewView;
 import gg.modl.backend.player.dto.response.PunishmentSeverityPreviewView;
 import gg.modl.backend.player.service.PunishmentEvidenceService;
@@ -82,30 +81,30 @@ import java.util.UUID;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+@ExtendWith(MockitoExtension.class)
 class MinecraftPunishmentV3ControllerTest {
     private static final String PLAYER_UUID = "11111111-2222-3333-4444-555555555555";
 
-    private PunishmentLifecycleService punishmentLifecycleService;
-    private PunishmentMutationService punishmentMutationService;
-    private PunishmentEvidenceService punishmentEvidenceService;
-    private PunishmentQueryService punishmentQueryService;
+    @Mock private PunishmentLifecycleService punishmentLifecycleService;
+    @Mock private PunishmentMutationService punishmentMutationService;
+    @Mock private PunishmentEvidenceService punishmentEvidenceService;
+    @Mock private PunishmentQueryService punishmentQueryService;
     private MockMvc v3MockMvc;
     private MockMvc v1MockMvc;
     private Server server;
 
     @BeforeEach
     void setUp() {
-        punishmentLifecycleService = mock(PunishmentLifecycleService.class);
-        punishmentMutationService = mock(PunishmentMutationService.class);
-        punishmentEvidenceService = mock(PunishmentEvidenceService.class);
-        punishmentQueryService = mock(PunishmentQueryService.class);
         server = new Server("Demo", "demo", "server_demo", "admin@example.com", true, ServerPlan.FREE);
 
         v3MockMvc = MockMvcBuilders.standaloneSetup(new MinecraftPunishmentV3Controller(

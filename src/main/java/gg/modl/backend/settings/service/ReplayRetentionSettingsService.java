@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -21,11 +22,11 @@ public class ReplayRetentionSettingsService {
     private final SettingsDocumentService settingsDocumentService;
     private final ObjectMapper objectMapper;
 
-    public ReplayRetentionSettings getReplayRetentionSettings(Server server) {
+    public @NotNull ReplayRetentionSettings getReplayRetentionSettings(@NotNull Server server) {
         return getReplayRetentionSettingsState(server).data();
     }
 
-    public VersionedSettings<ReplayRetentionSettings> getReplayRetentionSettingsState(Server server) {
+    public @NotNull VersionedSettings<ReplayRetentionSettings> getReplayRetentionSettingsState(@NotNull Server server) {
         SettingsDocumentService.RawSettingsState state = settingsDocumentService.getRawState(server, SETTINGS_TYPE_REPLAY_RETENTION);
         return new VersionedSettings<>(mapToSettings(state.data()), state.version(), state.updatedAt());
     }

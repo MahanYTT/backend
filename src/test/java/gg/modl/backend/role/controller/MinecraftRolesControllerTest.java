@@ -1,6 +1,5 @@
 package gg.modl.backend.role.controller;
 
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -9,24 +8,28 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import gg.modl.backend.infrastructure.rest.RESTMappingV1;
 import gg.modl.backend.infrastructure.rest.RequestAttribute;
+import gg.modl.backend.role.controller.v1.MinecraftRolesController;
 import gg.modl.backend.role.service.RoleService;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.server.data.ServerPlan;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+@ExtendWith(MockitoExtension.class)
 class MinecraftRolesControllerTest {
-    private RoleService roleService;
+    @Mock private RoleService roleService;
     private MockMvc mockMvc;
     private Server server;
 
     @BeforeEach
     void setUp() {
-        roleService = mock(RoleService.class);
         server = new Server("Demo", "demo", "server_demo", "admin@example.com", true, ServerPlan.FREE);
 
         mockMvc = MockMvcBuilders

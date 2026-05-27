@@ -4,8 +4,9 @@ import com.stripe.model.Event;
 import com.stripe.model.Invoice;
 import com.stripe.model.StripeObject;
 import com.stripe.model.Subscription;
-import gg.modl.backend.database.mongo.repository.StripeWebhookEventMongoRepository;
+import com.stripe.model.checkout.Session;
 import gg.modl.backend.database.mongo.repository.ServerMongoRepository;
+import gg.modl.backend.database.mongo.repository.StripeWebhookEventMongoRepository;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.server.data.ServerPlan;
 import gg.modl.backend.server.data.SubscriptionStatus;
@@ -50,7 +51,7 @@ public class StripeWebhookService {
 
     private void handleCheckoutCompleted(Event event) {
         StripeObject stripeObject = event.getDataObjectDeserializer().getObject().orElse(null);
-        if (!(stripeObject instanceof com.stripe.model.checkout.Session session)) {
+        if (!(stripeObject instanceof Session session)) {
             return;
         }
 
@@ -66,12 +67,15 @@ public class StripeWebhookService {
 
         try {
             Subscription subscription = stripeService.retrieveSubscription(session.getSubscription());
+            Date periodStart = stripeService.extractPeriodStart(subscription);
+            Date periodEnd = stripeService.extractPeriodEnd(subscription);
+            usageTrackingService.applyBillingPeriodRollover(server, periodStart, periodEnd);
             serverMutationHelper.mutate(server, current -> {
                 current.setStripeSubscriptionId(session.getSubscription());
                 current.setSubscriptionStatus(SubscriptionStatus.ACTIVE);
                 current.setPlan(ServerPlan.PREMIUM);
-                current.setCurrentPeriodStart(stripeService.extractPeriodStart(subscription));
-                current.setCurrentPeriodEnd(stripeService.extractPeriodEnd(subscription));
+                current.setCurrentPeriodStart(periodStart);
+                current.setCurrentPeriodEnd(periodEnd);
             });
         } catch (Exception exception) {
             log.error("Error retrieving subscription details", exception);
@@ -93,12 +97,15 @@ public class StripeWebhookService {
             return;
         }
 
+        Date periodStart = stripeService.extractPeriodStart(subscription);
+        Date periodEnd = stripeService.extractPeriodEnd(subscription);
+        usageTrackingService.applyBillingPeriodRollover(server, periodStart, periodEnd);
         serverMutationHelper.mutate(server, current -> {
             current.setStripeSubscriptionId(subscription.getId());
             current.setSubscriptionStatus(parseSubscriptionStatus(subscription.getStatus()));
             current.setPlan(planForSubscriptionStatus(subscription.getStatus()));
-            current.setCurrentPeriodStart(stripeService.extractPeriodStart(subscription));
-            current.setCurrentPeriodEnd(stripeService.extractPeriodEnd(subscription));
+            current.setCurrentPeriodStart(periodStart);
+            current.setCurrentPeriodEnd(periodEnd);
         });
     }
 
@@ -135,6 +142,9 @@ public class StripeWebhookService {
         }
 
         String effectiveStatus = stripeService.getEffectiveStatus(subscription);
+        Date periodStartDate = stripeService.extractPeriodStart(subscription);
+        Date periodEndDate = stripeService.extractPeriodEnd(subscription);
+        usageTrackingService.applyBillingPeriodRollover(server, periodStartDate, periodEndDate);
         serverMutationHelper.mutate(server, current -> {
             current.setSubscriptionStatus(parseSubscriptionStatus(effectiveStatus));
             if (isPremiumStatus(effectiveStatus)) {
@@ -143,8 +153,6 @@ public class StripeWebhookService {
                 current.setPlan(ServerPlan.FREE);
             }
 
-            Date periodStartDate = stripeService.extractPeriodStart(subscription);
-            Date periodEndDate = stripeService.extractPeriodEnd(subscription);
             if (periodStartDate != null) {
                 current.setCurrentPeriodStart(periodStartDate);
             }
@@ -205,7 +213,24 @@ public class StripeWebhookService {
         }
 
         Server server = findServerByCustomerId(invoice.getCustomer());
-        if (server == null || server.getSubscriptionStatus() != SubscriptionStatus.PAST_DUE) {
+        if (server == null) {
+            return;
+        }
+
+        if (server.getStripeSubscriptionId() != null) {
+            try {
+                Subscription subscription = stripeService.retrieveSubscription(server.getStripeSubscriptionId());
+                usageTrackingService.applyBillingPeriodRollover(
+                    server,
+                    stripeService.extractPeriodStart(subscription),
+                    stripeService.extractPeriodEnd(subscription)
+                );
+            } catch (Exception exception) {
+                log.error("Error retrieving subscription details on payment success", exception);
+            }
+        }
+
+        if (server.getSubscriptionStatus() != SubscriptionStatus.PAST_DUE) {
             return;
         }
 

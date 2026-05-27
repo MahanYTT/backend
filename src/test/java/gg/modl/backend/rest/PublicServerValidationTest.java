@@ -1,7 +1,7 @@
 package gg.modl.backend.rest;
 
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -12,19 +12,22 @@ import gg.modl.backend.server.ServerService;
 import gg.modl.backend.server.controller.PublicServerController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
+@ExtendWith(MockitoExtension.class)
 class PublicServerValidationTest {
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         ServerService serverService = mock(ServerService.class);
-        when(serverService.doesServerExist(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+        lenient().when(serverService.doesServerExist(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
             .thenReturn(new ServerService.ServerExistResult(false, false, false));
 
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();

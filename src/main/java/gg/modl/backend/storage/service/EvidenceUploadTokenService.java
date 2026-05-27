@@ -5,6 +5,8 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +16,8 @@ public class EvidenceUploadTokenService {
 
     private final ConcurrentHashMap<String, UploadToken> tokens = new ConcurrentHashMap<>();
 
-    public String createToken(Server server, String punishmentId, String playerUuid, String issuerName) {
+    @NotNull
+    public String createToken(@NotNull Server server, @NotNull String punishmentId, @NotNull String playerUuid, @NotNull String issuerName) {
         String token = UUID.randomUUID().toString();
         tokens.put(token, new UploadToken(
             token,
@@ -27,7 +30,8 @@ public class EvidenceUploadTokenService {
         return token;
     }
 
-    public UploadToken validateToken(String token) {
+    @Nullable
+    public UploadToken validateToken(@NotNull String token) {
         UploadToken uploadToken = tokens.get(token);
         if (uploadToken == null) {
             return null;
@@ -45,7 +49,7 @@ public class EvidenceUploadTokenService {
 
     @Scheduled(fixedRate = 300000) // Every 5 minutes
     public void cleanupExpiredTokens() {
-        tokens.entrySet().removeIf(stringUploadTokenEntry -> stringUploadTokenEntry.getValue().isExpired());
+        tokens.entrySet().removeIf(entry -> entry.getValue().isExpired());
     }
 
     public record UploadToken(

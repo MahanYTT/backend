@@ -2,10 +2,10 @@ package gg.modl.backend.database.mongo.repository;
 
 import gg.modl.backend.auth.data.WebAuthnCredential;
 import gg.modl.backend.database.CollectionName;
-import gg.modl.backend.email.EmailAddressUtil;
 import gg.modl.backend.database.mongo.AbstractServerMongoRepository;
 import gg.modl.backend.database.mongo.TenantMongoAccess;
 import gg.modl.backend.database.mongo.fields.WebAuthnCredentialFields;
+import gg.modl.backend.email.EmailAddressUtil;
 import gg.modl.backend.server.data.Server;
 import java.util.Date;
 import java.util.List;

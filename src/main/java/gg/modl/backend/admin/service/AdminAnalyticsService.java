@@ -6,8 +6,11 @@ import gg.modl.backend.database.mongo.repository.GlobalMongoAdminRepository;
 import gg.modl.backend.database.mongo.repository.MetricSnapshotMongoRepository;
 import gg.modl.backend.database.mongo.repository.ServerInstanceSnapshotMongoRepository;
 import gg.modl.backend.database.mongo.repository.ServerMongoRepository;
-import gg.modl.backend.server.data.Server;
+import gg.modl.backend.database.mongo.repository.ServerMongoRepository.DateServersResult;
+import gg.modl.backend.database.mongo.repository.ServerMongoRepository.DateValueResult;
+import gg.modl.backend.database.mongo.repository.ServerMongoRepository.NameValueResult;
 import gg.modl.backend.infrastructure.util.DateRangeUtil;
+import gg.modl.backend.server.data.Server;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
@@ -18,9 +21,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import gg.modl.backend.database.mongo.repository.ServerMongoRepository.DateServersResult;
-import gg.modl.backend.database.mongo.repository.ServerMongoRepository.DateValueResult;
-import gg.modl.backend.database.mongo.repository.ServerMongoRepository.NameValueResult;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -33,7 +35,7 @@ public class AdminAnalyticsService {
     private final GlobalMongoAdminRepository globalMongoAdminRepository;
     private final AdminServerService adminServerService;
 
-    public Map<String, Object> getDashboard(String range) {
+    public @NotNull Map<String, Object> getDashboard(@Nullable String range) {
         int days = DateRangeUtil.resolveRangeDays(range);
         Instant now = Instant.now();
         Date startDate = Date.from(now.minus(days, ChronoUnit.DAYS));
@@ -84,7 +86,7 @@ public class AdminAnalyticsService {
         if (latestSnapshot != null && latestSnapshot.getServers() != null && !latestSnapshot.getServers().isEmpty()) {
             List<String> serverIds = latestSnapshot.getServers().stream()
                 .map(ServerInstanceSnapshot.ServerEntry::getServerId)
-                .collect(Collectors.toList());
+                .toList();
             Map<String, String> serverNameMap = serverRepository.findUsageTargetsByIds(serverIds).stream()
                 .collect(Collectors.toMap(Server::getId, Server::getServerName, (a, b) -> a));
 
@@ -148,7 +150,7 @@ public class AdminAnalyticsService {
             : 0;
     }
 
-    public Map<String, Object> getActivity(String range) {
+    public @NotNull Map<String, Object> getActivity(@Nullable String range) {
         int days = DateRangeUtil.resolveRangeDays(range);
         Date startDate = Date.from(Instant.now().minus(days, ChronoUnit.DAYS));
 
@@ -200,7 +202,7 @@ public class AdminAnalyticsService {
         );
     }
 
-    public Map<String, Object> getHistorical(String metric, String range) {
+    public @NotNull Map<String, Object> getHistorical(@Nullable String metric, @Nullable String range) {
         if (metric == null || (!metric.equals("servers") && !metric.equals("users") && !metric.equals("tickets"))) {
             return Map.of("success", false, "error", "Invalid metric type");
         }
@@ -219,7 +221,7 @@ public class AdminAnalyticsService {
         );
     }
 
-    public Object exportAnalytics(String type, String range) {
+    public @NotNull Object exportAnalytics(@Nullable String type, @Nullable String range) {
         String normalizedType = type != null ? type : "json";
         String normalizedRange = range != null && !range.isBlank() ? range : "30d";
 

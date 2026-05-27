@@ -10,6 +10,7 @@ import jakarta.mail.MessagingException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -71,8 +72,12 @@ public class AuthService {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(code.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(hash);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to hash auth code", e);
+        } catch (NoSuchAlgorithmException e) {
+            log.error("Required hashing algorithm unavailable for auth code hashing");
+            throw new IllegalStateException("Failed to hash auth code: algorithm unavailable", e);
+        } catch (InvalidKeyException e) {
+            log.error("HMAC secret rejected by Mac.init; verify code-hash secret configuration");
+            throw new IllegalStateException("Failed to hash auth code: invalid hash key", e);
         }
     }
 

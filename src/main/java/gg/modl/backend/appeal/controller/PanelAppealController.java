@@ -32,8 +32,8 @@ public class PanelAppealController {
         @PathVariable String punishmentId,
         HttpServletRequest request
     ) {
-        Server server = RequestUtil.getRequestServer(request);
-        List<TicketResponse> appeals = appealService.getAppealsByPunishment(server, punishmentId);
+        final Server server = RequestUtil.getRequestServer(request);
+        final List<TicketResponse> appeals = appealService.getAppealsByPunishment(server, punishmentId);
 
         if (appeals.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -47,7 +47,7 @@ public class PanelAppealController {
         @PathVariable String id,
         HttpServletRequest request
     ) {
-        Server server = RequestUtil.getRequestServer(request);
+        final Server server = RequestUtil.getRequestServer(request);
         return ResponseEntity.ok(appealService.getAppealById(server, id));
     }
 
@@ -57,7 +57,7 @@ public class PanelAppealController {
         @RequestBody @Valid AddAppealReplyRequest replyRequest,
         HttpServletRequest request
     ) {
-        Server server = RequestUtil.getRequestServer(request);
+        final Server server = RequestUtil.getRequestServer(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(appealService.addReply(server, id, replyRequest));
     }
 
@@ -67,7 +67,7 @@ public class PanelAppealController {
         @RequestBody @Valid UpdateAppealStatusRequest statusRequest,
         HttpServletRequest request
     ) {
-        Server server = RequestUtil.getRequestServer(request);
+        final Server server = RequestUtil.getRequestServer(request);
         return ResponseEntity.ok(appealService.updateStatus(server, id, statusRequest));
     }
 }

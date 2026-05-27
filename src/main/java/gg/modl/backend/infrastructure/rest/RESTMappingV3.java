@@ -5,5 +5,6 @@ public final class RESTMappingV3 {
     public static final String PREFIX_MINECRAFT = PREFIX + "/minecraft";
 
     private RESTMappingV3() {
+        throw new UnsupportedOperationException();
     }
 }

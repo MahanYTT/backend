@@ -1,16 +1,20 @@
 package gg.modl.backend.ticket.service;
 
 import gg.modl.backend.database.mongo.repository.StaffMongoRepository;
-import gg.modl.backend.infrastructure.exception.ResourceNotFoundException;
 import gg.modl.backend.database.mongo.repository.TicketMongoRepository;
 import gg.modl.backend.email.EmailAddressUtil;
-import gg.modl.backend.staff.data.Staff;
+import gg.modl.backend.infrastructure.exception.ResourceNotFoundException;
+import gg.modl.backend.infrastructure.util.MongoKeyUtils;
+import gg.modl.backend.infrastructure.util.UuidUtil;
+import gg.modl.backend.realtime.dispatch.RealtimeEventDispatcher;
+import gg.modl.backend.realtime.dispatch.RealtimeOutboundEvent;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.settings.data.QuickResponseSettings;
 import gg.modl.backend.settings.data.TicketFormSettings;
 import gg.modl.backend.settings.service.QuickResponseSettingsService;
 import gg.modl.backend.settings.service.TicketFormSettingsService;
 import gg.modl.backend.settings.service.WebhookSettingsService;
+import gg.modl.backend.staff.data.Staff;
 import gg.modl.backend.ticket.data.AppealWorkflowStatus;
 import gg.modl.backend.ticket.data.Ticket;
 import gg.modl.backend.ticket.data.TicketCategory;
@@ -26,7 +30,9 @@ import gg.modl.backend.ticket.dto.request.UpdateTicketRequest;
 import gg.modl.backend.ticket.dto.response.QuickResponseResult;
 import gg.modl.backend.ticket.dto.response.TicketResponse;
 import gg.modl.backend.ticket.util.TicketAssigneeUtil;
-import gg.modl.backend.infrastructure.util.MongoKeyUtils;
+import gg.modl.proto.modl.v1.RealtimeEnvelope;
+import gg.modl.proto.modl.v1.TicketChangedEvent;
+import gg.modl.proto.modl.v1.Topic;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -40,10 +46,14 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TicketService {
     private final TicketMongoRepository ticketRepository;
     private final StaffMongoRepository staffRepository;
@@ -53,6 +63,7 @@ public class TicketService {
     private final TicketIdGenerator ticketIdGenerator;
     private final TicketContentService contentService;
     private final WebhookSettingsService webhookSettingsService;
+    private final RealtimeEventDispatcher realtimeEventDispatcher;
     private static final String AVATAR_URL_FORMAT = "https://mc-heads.net/avatar/%s/32";
 
     public TicketResponse getTicketById(Server server, String ticketId) {
@@ -204,9 +215,9 @@ public class TicketService {
             .status(ticketStatus)
             .appealWorkflowStatus(ticketCategory.isAppeal() ? AppealWorkflowStatus.OPEN : null)
             .creatorName(creatorDisplayName)
-            .creatorUuid(normalizeUuid(request.creatorUuid()))
+            .creatorUuid(UuidUtil.normalizeUuid(request.creatorUuid()))
             .reportedPlayer(request.reportedPlayerName())
-            .reportedPlayerUuid(normalizeUuid(request.reportedPlayerUuid()))
+            .reportedPlayerUuid(UuidUtil.normalizeUuid(request.reportedPlayerUuid()))
             .tags(tags)
             .replies(replies)
             .notes(new ArrayList<>())
@@ -221,6 +232,7 @@ public class TicketService {
             .build();
 
         ticketRepository.saveEntity(server, ticket);
+        publishTicketChanged(server, ticketId, "created");
 
         webhookSettingsService.sendTicketCreatedWebhook(server, Map.of(
             "id", ticketId,
@@ -283,7 +295,7 @@ public class TicketService {
                 .attachments(request.newReply().attachments() != null ? request.newReply().attachments() : new ArrayList<>())
                 .build();
 
-            ticket.ensureReplies().add(newReply);
+            ticket.addReply(newReply);
         }
 
         if (request.newNote() != null) {
@@ -294,10 +306,11 @@ public class TicketService {
                 .date(new Date())
                 .build();
 
-            ticket.ensureNotes().add(newNote);
+            ticket.addNote(newNote);
         }
 
         Ticket saved = ticketRepository.saveEntity(server, ticket);
+        publishTicketChanged(server, saved.getId(), "updated");
 
         if (newReply != null && newReply.isStaff()) {
             notificationService.notifyTicketReply(server, saved, newReply);
@@ -362,6 +375,7 @@ public class TicketService {
             if (hasChanges) {
                 Ticket saved = ticketRepository.saveEntity(server, ticket);
                 updatedCount++;
+                publishTicketChanged(server, saved.getId(), "bulk_updated");
 
                 if (!wasClosed && saved.getStatus() != null && saved.getStatus().isTerminal()) {
                     notificationService.notifyTicketClosed(server, saved);
@@ -396,7 +410,7 @@ public class TicketService {
             .created(new Date())
             .staff(true)
             .build();
-        ticket.ensureReplies().add(responseReply);
+        ticket.addReply(responseReply);
         ticket.setUpdatedAt(new Date());
         boolean ticketClosed = false;
         if (Boolean.TRUE.equals(action.getCloseTicket())) {
@@ -405,6 +419,7 @@ public class TicketService {
         }
 
         Ticket saved = ticketRepository.saveEntity(server, ticket);
+        publishTicketChanged(server, saved.getId(), "quick_response");
 
         notificationService.notifyTicketReply(server, saved, responseReply);
 
@@ -501,11 +516,12 @@ public class TicketService {
                     .attachments(initialAttachments)
                     .creatorIdentifier(request.creatorIdentifier())
                     .build();
-                ticket.ensureReplies().add(initialReply);
+                ticket.addReply(initialReply);
             }
         }
 
         Ticket saved = ticketRepository.saveEntity(server, ticket);
+        publishTicketChanged(server, saved.getId(), "form_submitted");
 
         return toTicketResponse(server, saved);
     }
@@ -527,10 +543,11 @@ public class TicketService {
             .attachments(new ArrayList<>())
             .build();
 
-        ticket.ensureReplies().add(systemReply);
+        ticket.addReply(systemReply);
         ticket.applyLifecycleStatus(TicketStatus.CLOSED);
         ticket.setUpdatedAt(new Date());
         ticketRepository.saveEntity(server, ticket);
+        publishTicketChanged(server, ticketId, "closed_for_punishment");
     }
 
     public void reopenTicketForPunishment(Server server, String ticketId, String issuerName) {
@@ -542,9 +559,11 @@ public class TicketService {
         ticket.applyLifecycleStatus(TicketStatus.OPEN);
         ticket.setUpdatedAt(new Date());
         ticketRepository.saveEntity(server, ticket);
+        publishTicketChanged(server, ticketId, "reopened_for_punishment");
     }
 
-    public String getEmailHint(Ticket ticket) {
+    @Nullable
+    public String getEmailHint(@NotNull Ticket ticket) {
         if (ticket.getData() == null) {
             return null;
         }
@@ -560,8 +579,23 @@ public class TicketService {
         return emailStr.charAt(0) + "***" + emailStr.substring(atIndex);
     }
 
-    private static String normalizeUuid(String value) {
-        return value == null ? null : value.toLowerCase(java.util.Locale.ROOT);
+    private void publishTicketChanged(Server server, String ticketId, String changeKind) {
+        try {
+            TicketChangedEvent.Builder payload = TicketChangedEvent.newBuilder().setTicketId(ticketId);
+            if (changeKind != null) {
+                payload.setChangeKind(changeKind);
+            }
+            realtimeEventDispatcher.publish(new RealtimeOutboundEvent(
+                server.getId(),
+                Topic.TOPIC_PANEL_TICKETS,
+                RealtimeEnvelope.newBuilder()
+                    .setEventId(server.getId() + "::ticket::" + ticketId + "::" + System.nanoTime())
+                    .setTicketChanged(payload)
+                    .build()
+            ));
+        } catch (RuntimeException ex) {
+            log.warn("realtime publish failed for ticket {} change {}", ticketId, changeKind, ex);
+        }
     }
 
 }

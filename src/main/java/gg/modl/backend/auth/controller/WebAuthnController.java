@@ -9,16 +9,17 @@ import gg.modl.backend.infrastructure.exception.UnauthorizedException;
 import gg.modl.backend.infrastructure.exception.ValidationException;
 import gg.modl.backend.infrastructure.rest.RESTMappingV1;
 import gg.modl.backend.infrastructure.rest.RequestUtil;
+import gg.modl.backend.infrastructure.util.CookieUtil;
+import gg.modl.backend.infrastructure.validation.RequestValidationLimits;
 import gg.modl.backend.role.service.PermissionService;
 import gg.modl.backend.server.data.Server;
-import gg.modl.backend.infrastructure.util.CookieUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import gg.modl.backend.infrastructure.validation.RequestValidationLimits;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +43,6 @@ public class WebAuthnController {
     private final ObjectMapper objectMapper;
     private final CookieUtil cookieUtil;
 
-
     @PostMapping("/register/options")
     public ResponseEntity<?> registerOptions(HttpServletRequest request) throws JsonProcessingException {
         String email = RequestUtil.getSessionEmail(request);
@@ -59,7 +59,7 @@ public class WebAuthnController {
     @PostMapping("/register/verify")
     public ResponseEntity<?> registerVerify(
         HttpServletRequest request,
-        @RequestBody @Valid RegisterVerifyRequest body) throws Exception {
+        @RequestBody @Valid RegisterVerifyRequest body) throws IOException {
         String email = RequestUtil.getSessionEmail(request);
         if (email == null) {
             throw new UnauthorizedException("Not authenticated");
@@ -100,7 +100,6 @@ public class WebAuthnController {
         return ResponseEntity.ok(Map.of("success", true));
     }
 
-
     @DeleteMapping("/credentials/{id}")
     public ResponseEntity<?> deleteCredential(
         HttpServletRequest request,
@@ -131,7 +130,6 @@ public class WebAuthnController {
         HttpServletRequest request,
         @RequestBody @Valid LoginOptionsRequest body) throws JsonProcessingException {
         Server server = RequestUtil.getRequestServer(request);
-
         // Prevent email enumeration: check if email is authorized first
         if (!permissionService.isAuthorizedEmail(server, body.email())) {
             return ResponseEntity.ok(Map.of("hasPasskeys", false));
@@ -151,14 +149,12 @@ public class WebAuthnController {
         ));
     }
 
-
     @PostMapping("/login/verify")
     public ResponseEntity<?> loginVerify(
         HttpServletRequest request,
         HttpServletResponse response,
-        @RequestBody @Valid LoginVerifyRequest body) throws Exception {
+        @RequestBody @Valid LoginVerifyRequest body) throws IOException {
         Server server = RequestUtil.getRequestServer(request);
-
         String email = webAuthnService.finishAuthentication(server, body.challengeId(), body.response());
 
         if (!permissionService.isAuthorizedEmail(server, email)) {

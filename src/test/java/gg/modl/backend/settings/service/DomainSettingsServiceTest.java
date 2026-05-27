@@ -1,7 +1,6 @@
 package gg.modl.backend.settings.service;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,24 +13,27 @@ import gg.modl.backend.server.data.Server;
 import gg.modl.backend.server.data.ServerPlan;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class DomainSettingsServiceTest {
-    private SettingsRepositoryAccess settingsRepositoryAccess;
-    private ServerMongoRepository serverRepository;
-    private CloudflareClient cloudflareClient;
+    @Mock private SettingsRepositoryAccess settingsRepositoryAccess;
+    @Mock private ServerMongoRepository serverRepository;
+    @Mock private CloudflareClient cloudflareClient;
+    @Mock private DynamicCorsConfigurationSource dynamicCorsConfigurationSource;
+    @Mock private CustomDomainAccessService customDomainAccessService;
     private DomainSettingsService domainSettingsService;
 
     @BeforeEach
     void setUp() {
-        settingsRepositoryAccess = mock(SettingsRepositoryAccess.class);
-        serverRepository = mock(ServerMongoRepository.class);
-        cloudflareClient = mock(CloudflareClient.class);
         domainSettingsService = new DomainSettingsService(
             settingsRepositoryAccess,
             serverRepository,
             cloudflareClient,
-            mock(DynamicCorsConfigurationSource.class),
-            mock(CustomDomainAccessService.class)
+            dynamicCorsConfigurationSource,
+            customDomainAccessService
         );
     }
 

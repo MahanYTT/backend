@@ -12,6 +12,7 @@ import gg.modl.backend.settings.service.PunishmentTypeService;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -117,7 +118,7 @@ public class PermissionService {
         List<Permission> permissions = new ArrayList<>();
 
         punishmentTypes.forEach(type -> {
-            String permId = "punishment.apply." + type.getName().toLowerCase().replace(" ", "-");
+            String permId = "punishment.apply." + type.getName().toLowerCase(Locale.ROOT).replace(" ", "-");
             permissions.add(new Permission(
                 permId,
                 "Apply " + type.getName(),

@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -18,14 +19,14 @@ public class AIModerationSettingsService {
     private final ObjectMapper objectMapper;
     private static final String SETTINGS_TYPE_AI_MODERATION = "aiModerationSettings";
 
-    public AIModerationSettings updateAIModerationSettings(Server server, AIModerationSettings newSettings) {
+    public @NotNull AIModerationSettings updateAIModerationSettings(@NotNull Server server, @NotNull AIModerationSettings newSettings) {
         @SuppressWarnings("unchecked")
         Map<String, Object> data = objectMapper.convertValue(newSettings, Map.class);
         settingsRepositoryAccess.upsertSettings(server, SETTINGS_TYPE_AI_MODERATION, data);
         return getAIModerationSettings(server);
     }
 
-    public AIModerationSettings getAIModerationSettings(Server server) {
+    public @NotNull AIModerationSettings getAIModerationSettings(@NotNull Server server) {
         Settings settings = settingsRepositoryAccess.findSettings(server, SETTINGS_TYPE_AI_MODERATION).orElse(null);
 
         if (settings == null || settings.getData() == null) {

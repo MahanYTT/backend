@@ -2,7 +2,6 @@ package gg.modl.backend.settings.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,15 +14,18 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class ReplayRetentionSettingsServiceTest {
-    private SettingsDocumentService settingsDocumentService;
+    @Mock private SettingsDocumentService settingsDocumentService;
     private ReplayRetentionSettingsService service;
     private Server server;
 
     @BeforeEach
     void setUp() {
-        settingsDocumentService = mock(SettingsDocumentService.class);
         service = new ReplayRetentionSettingsService(settingsDocumentService, new ObjectMapper());
         server = new Server("server", "domain", "db", "admin@example.com", true, ServerPlan.FREE);
     }

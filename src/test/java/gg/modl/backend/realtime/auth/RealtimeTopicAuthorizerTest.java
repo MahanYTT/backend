@@ -13,7 +13,10 @@ import gg.modl.backend.staff.service.StaffService;
 import gg.modl.proto.modl.v1.Topic;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class RealtimeTopicAuthorizerTest {
 
     @Test

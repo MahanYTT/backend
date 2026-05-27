@@ -7,9 +7,12 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import gg.modl.backend.infrastructure.config.ModlCorsProperties;
 import gg.modl.backend.server.ServerService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 
+@ExtendWith(MockitoExtension.class)
 class DynamicCorsConfigurationSourceTest {
     private static final String REPLAY_LITE_PATH = "/v1/public/replay-lite/replays/75f4b741-67df-414c-957b-a8a08222fc30";
 

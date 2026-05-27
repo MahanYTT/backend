@@ -1,9 +1,11 @@
 package gg.modl.backend.player.service;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,9 +17,9 @@ import gg.modl.backend.database.mongo.repository.StaffMongoRepository;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.server.data.ServerPlan;
 import gg.modl.backend.settings.service.PunishmentTypeService;
+import gg.modl.proto.modl.v1.SyncResponse;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -82,16 +84,17 @@ class MinecraftSyncServiceTest {
             syncStaffEventService,
             syncActiveStaffService
         );
+        lenient().when(syncStaffEventService.collectStaffEvents(any(), any(), any())).thenReturn(List.of());
+        lenient().when(syncActiveStaffService.getActiveStaffMembers(any(), any())).thenReturn(List.of());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void syncReturnsEnvelopeWhenNoPlayersAreOnline() {
         Server server = new Server("server", "domain", "db", "admin@example.com", true, ServerPlan.FREE);
 
         when(punishmentTypeService.getPunishmentTypes(server)).thenReturn(List.of());
 
-        Map<String, Object> response = minecraftSyncService.sync(
+        SyncResponse response = minecraftSyncService.sync(
             server,
             "2025-01-01T00:00:00Z",
             List.of(),
@@ -102,11 +105,11 @@ class MinecraftSyncServiceTest {
             null
         );
 
-        assertNotNull(response.get("timestamp"));
-        assertTrue(response.containsKey("data"));
-        Map<String, Object> data = (Map<String, Object>) response.get("data");
-        assertTrue(data.containsKey("pendingPunishments"));
-        assertTrue(data.containsKey("staffNotifications"));
+        assertNotNull(response.getTimestamp());
+        assertTrue(response.hasData());
+        assertNotNull(response.getData().getPendingPunishmentsList());
+        assertNotNull(response.getData().getStaffNotificationsList());
+        assertFalse(response.getData().hasMigrationTask());
     }
 
     @SuppressWarnings("unchecked")

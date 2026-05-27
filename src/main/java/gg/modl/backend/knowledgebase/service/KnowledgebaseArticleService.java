@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -23,36 +24,36 @@ public class KnowledgebaseArticleService {
     private final Slugify slugify = Slugify.builder().build();
     private static final int MAX_SEARCH_RESULTS = 20;
 
-    public List<KnowledgebaseArticle> getArticlesByCategory(Server server, String categoryId) {
+    public @NotNull List<KnowledgebaseArticle> getArticlesByCategory(@NotNull Server server, @NotNull String categoryId) {
         return articleRepository.findByCategoryOrdered(server, categoryId);
     }
 
-    public Map<String, List<KnowledgebaseArticle>> getAllArticlesGroupedByCategory(Server server) {
+    public @NotNull Map<String, List<KnowledgebaseArticle>> getAllArticlesGroupedByCategory(@NotNull Server server) {
         return articleRepository.findAll(server)
             .stream()
             .collect(Collectors.groupingBy(KnowledgebaseArticle::getCategoryId));
     }
 
-    public List<KnowledgebaseArticle> getVisibleArticlesByCategory(Server server, String categoryId) {
+    public @NotNull List<KnowledgebaseArticle> getVisibleArticlesByCategory(@NotNull Server server, @NotNull String categoryId) {
         return articleRepository.findVisibleByCategoryOrdered(server, categoryId);
     }
 
-    public Optional<KnowledgebaseArticle> getArticleById(Server server, String id) {
+    public @NotNull Optional<KnowledgebaseArticle> getArticleById(@NotNull Server server, @NotNull String id) {
         return articleRepository.findByArticleId(server, id);
     }
 
-    public Optional<KnowledgebaseArticle> getArticleBySlug(Server server, String slug) {
+    public @NotNull Optional<KnowledgebaseArticle> getArticleBySlug(@NotNull Server server, @NotNull String slug) {
         return articleRepository.findBySlug(server, slug);
     }
 
-    public KnowledgebaseArticle createArticle(Server server, String categoryId, CreateArticleRequest request) {
+    public @NotNull KnowledgebaseArticle createArticle(@NotNull Server server, @NotNull String categoryId, @NotNull CreateArticleRequest request) {
         KnowledgebaseArticle article = KnowledgebaseArticle.builder()
             .title(request.title())
             .slug(generateUniqueSlug(server, slugify.slugify(request.title()), null))
             .content(request.content())
             .categoryId(categoryId)
             .ordinal(articleRepository.findMaxOrdinalInCategory(server, categoryId) + 1)
-            .isVisible(request.isVisible() != null ? request.isVisible() : true)
+            .isVisible(!Boolean.FALSE.equals(request.isVisible()))
             .createdAt(new Date())
             .updatedAt(new Date())
             .build();
@@ -72,7 +73,7 @@ public class KnowledgebaseArticleService {
         return slug;
     }
 
-    public Optional<KnowledgebaseArticle> updateArticle(Server server, String id, UpdateArticleRequest request) {
+    public @NotNull Optional<KnowledgebaseArticle> updateArticle(@NotNull Server server, @NotNull String id, @NotNull UpdateArticleRequest request) {
         String uniqueSlug = request.title() != null
                             ? generateUniqueSlug(server, slugify.slugify(request.title()), id)
                             : null;
@@ -92,7 +93,7 @@ public class KnowledgebaseArticleService {
         return articleRepository.deleteByArticleId(server, id);
     }
 
-    public List<KnowledgebaseArticle> searchArticles(Server server, String searchQuery) {
+    public @NotNull List<KnowledgebaseArticle> searchArticles(@NotNull Server server, @NotNull String searchQuery) {
         return articleRepository.searchVisibleArticles(server, searchQuery, MAX_SEARCH_RESULTS);
     }
 

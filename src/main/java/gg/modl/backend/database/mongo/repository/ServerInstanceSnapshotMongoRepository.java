@@ -4,7 +4,6 @@ import com.mongodb.client.result.UpdateResult;
 import gg.modl.backend.analytics.data.ServerInstanceSnapshot;
 import gg.modl.backend.database.CollectionName;
 import gg.modl.backend.database.mongo.AbstractGlobalMongoRepository;
-
 import gg.modl.backend.database.mongo.TenantMongoAccess;
 import gg.modl.backend.database.mongo.fields.ServerInstanceSnapshotFields;
 import java.util.Date;
@@ -27,7 +26,6 @@ public class ServerInstanceSnapshotMongoRepository extends AbstractGlobalMongoRe
         ServerInstanceSnapshot.ServerEntry entry =
             new ServerInstanceSnapshot.ServerEntry(serverId, serverName, playerCount, platform, version, ipAddress, pluginVersion);
 
-        // Try to update existing server entry in the array
         Query updateQuery = Query.query(
             Criteria.where(ServerInstanceSnapshotFields.DATE).is(date)
                 .and("servers.serverId").is(serverId)
@@ -43,7 +41,6 @@ public class ServerInstanceSnapshotMongoRepository extends AbstractGlobalMongoRe
         UpdateResult result = updateFirst(updateQuery, updateExisting);
 
         if (result.getMatchedCount() == 0) {
-            // Entry doesn't exist yet — upsert document and push to array
             Query upsertQuery = Query.query(Criteria.where(ServerInstanceSnapshotFields.DATE).is(date));
             Update pushNew = new Update()
                 .push(ServerInstanceSnapshotFields.SERVERS, entry)

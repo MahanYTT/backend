@@ -13,10 +13,10 @@ import gg.modl.backend.server.data.Server;
 import gg.modl.backend.staff.data.Staff;
 import gg.modl.backend.staff.service.StaffService;
 import gg.modl.backend.infrastructure.util.CookieUtil;
+import gg.modl.backend.infrastructure.validation.RequestValidationLimits;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import gg.modl.backend.infrastructure.validation.RequestValidationLimits;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -252,7 +252,6 @@ public class PanelAuthController {
                 new ProfileResponse(staff.getId(), staff.getEmail(), staff.getUsername(), role, minecraftUsername, staff.getLanguage(), staff.getDateFormat()));
         }
 
-        // Super Admin without a staff record - return default username
         if (isSuperAdmin) {
             return ResponseEntity.ok(new ProfileResponse(null, email, "Admin", "Super Admin", "Admin", "en", "MM/DD/YYYY"));
         }
@@ -299,12 +298,10 @@ public class PanelAuthController {
 
         Server server = RequestUtil.getRequestServer(request);
 
-        // Check if user is Super Admin (server admin)
         if (permissionService.isSuperAdmin(server, email)) {
             return ResponseEntity.ok(permissionService.getAllPermissionIds(server));
         }
 
-        // Get staff member and their role
         Optional<Staff> staffOpt = staffService.getStaffByEmail(server, email);
         if (staffOpt.isEmpty()) {
             return ResponseEntity.ok(Collections.emptyList());

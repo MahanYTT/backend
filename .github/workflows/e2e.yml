@@ -1,0 +1,67 @@
+name: E2E (staging)
+
+# End-to-end tests that drive the deployed staging environment.
+# Runs nightly and on manual trigger only — not on every PR — because each run mutates
+# shared staging tenant data and is therefore both slow and order-sensitive.
+
+on:
+  schedule:
+    - cron: '0 8 * * *'    # 08:00 UTC daily
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      MODL_BASE_URL: ${{ secrets.MODL_E2E_BASE_URL }}
+      MODL_API_KEY: ${{ secrets.MODL_E2E_API_KEY }}
+      MODL_SESSION_TOKEN: ${{ secrets.MODL_E2E_SESSION_TOKEN }}
+      MODL_SERVER_DOMAIN: ${{ secrets.MODL_E2E_SERVER_DOMAIN }}
+      MODL_MONGO_URI: ${{ secrets.MODL_E2E_MONGO_URI }}
+      MODL_PANEL_ORIGIN: ${{ secrets.MODL_E2E_PANEL_ORIGIN }}
+      # Fail loudly in CI when staging credentials are missing.
+      MODL_E2E_REQUIRE_CREDENTIALS: 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Validate staging secrets are present
+        run: |
+          missing=()
+          for name in MODL_BASE_URL MODL_API_KEY MODL_SESSION_TOKEN MODL_SERVER_DOMAIN MODL_MONGO_URI; do
+            if [ -z "${!name}" ]; then
+              missing+=("$name")
+            fi
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing required staging secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Run E2E tests
+        run: ./gradlew e2eTest --no-daemon
+
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-reports
+          path: |
+            build/reports/tests/e2eTest/
+            build/test-results/e2eTest/
+          retention-days: 14

@@ -1,7 +1,7 @@
 package gg.modl.backend.realtime.auth;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -9,8 +9,6 @@ import static org.mockito.Mockito.when;
 import gg.modl.backend.auth.AuthConfiguration;
 import gg.modl.backend.auth.session.AuthSessionData;
 import gg.modl.backend.auth.session.SessionService;
-import gg.modl.backend.infrastructure.config.ModlDevProperties;
-import gg.modl.backend.infrastructure.config.ModlProperties;
 import gg.modl.backend.infrastructure.rest.RequestHeader;
 import gg.modl.backend.server.ServerService;
 import gg.modl.backend.server.data.Server;
@@ -21,8 +19,11 @@ import gg.modl.proto.modl.v1.ClientKind;
 import java.util.Date;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
 
+@ExtendWith(MockitoExtension.class)
 class RealtimeAuthenticatorTest {
 
     @Test
@@ -35,8 +36,6 @@ class RealtimeAuthenticatorTest {
             mock(SessionService.class),
             mock(ServerService.class),
             mock(AuthConfiguration.class),
-            new ModlProperties(),
-            new ModlDevProperties(),
             mock(RealtimeOriginValidator.class)
         );
 
@@ -69,8 +68,6 @@ class RealtimeAuthenticatorTest {
             sessionService,
             serverService,
             authConfiguration,
-            new ModlProperties(),
-            new ModlDevProperties(),
             originValidator
         );
 
@@ -96,8 +93,6 @@ class RealtimeAuthenticatorTest {
             mock(SessionService.class),
             mock(ServerService.class),
             new AuthConfiguration(),
-            new ModlProperties(),
-            new ModlDevProperties(),
             mock(RealtimeOriginValidator.class)
         );
         HttpHeaders headers = new HttpHeaders();

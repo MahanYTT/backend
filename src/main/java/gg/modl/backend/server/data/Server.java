@@ -4,8 +4,9 @@ import gg.modl.backend.database.CollectionName;
 import gg.modl.backend.database.mongo.codegen.GenerateMongoFields;
 import gg.modl.backend.server.ServerField;
 import java.util.Date;
-import lombok.Data;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.data.annotation.Id;
@@ -15,7 +16,8 @@ import org.springframework.data.mongodb.core.mapping.Field;
 import org.springframework.data.mongodb.core.mapping.FieldType;
 
 @Document(collection = CollectionName.MODL_SERVERS)
-@Data
+@Getter
+@Setter
 @RequiredArgsConstructor
 @GenerateMongoFields
 public class Server {
@@ -105,11 +107,15 @@ public class Server {
 
     @Nullable
     @Field(name = "usageBillingEnabled", targetType = FieldType.BOOLEAN)
-    private Boolean usageBillingEnabled; // Whether to charge for overages
+    private Boolean usageBillingEnabled;
 
     @Nullable
     @Field(name = "usageBillingUpdatedAt", targetType = FieldType.DATE_TIME)
     private Date usageBillingUpdatedAt;
+
+    @Nullable
+    @Field(name = "usageResetAt", targetType = FieldType.DATE_TIME)
+    private Date usageResetAt;
 
     @Nullable
     @Field(name = "storageUsedBytes", targetType = FieldType.INT64)
@@ -125,7 +131,7 @@ public class Server {
 
     @Nullable
     @Field(name = "migrationFileSizeLimit", targetType = FieldType.INT64)
-    private Long migrationFileSizeLimit; // Custom migration file size limit in bytes
+    private Long migrationFileSizeLimit;
 
     @Nullable
     @Field(name = ServerField.CUSTOM_DOMAIN, targetType = FieldType.STRING)

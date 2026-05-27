@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -23,8 +22,8 @@ import gg.modl.backend.infrastructure.rest.RESTMappingV3;
 import gg.modl.backend.infrastructure.rest.RequestAttribute;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.server.data.ServerPlan;
-import gg.modl.backend.settings.controller.MinecraftPunishmentTypeController;
-import gg.modl.backend.settings.controller.MinecraftPunishmentTypeV3Controller;
+import gg.modl.backend.settings.controller.v1.MinecraftPunishmentTypeController;
+import gg.modl.backend.settings.controller.v3.MinecraftPunishmentTypeV3Controller;
 import gg.modl.backend.settings.data.DurationDetail;
 import gg.modl.backend.settings.data.OffenseLevelDurations;
 import gg.modl.backend.settings.data.PunishmentDurations;
@@ -35,20 +34,23 @@ import gg.modl.proto.modl.v1.PunishmentTypesResponse;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+@ExtendWith(MockitoExtension.class)
 class MinecraftPunishmentTypeV3ControllerTest {
-    private PunishmentTypeService punishmentTypeService;
+    @Mock private PunishmentTypeService punishmentTypeService;
     private MockMvc v3MockMvc;
     private MockMvc v1MockMvc;
     private Server server;
 
     @BeforeEach
     void setUp() {
-        punishmentTypeService = mock(PunishmentTypeService.class);
         server = new Server("Demo", "demo", "server_demo", "admin@example.com", true, ServerPlan.FREE);
 
         v3MockMvc = MockMvcBuilders.standaloneSetup(new MinecraftPunishmentTypeV3Controller(punishmentTypeService))

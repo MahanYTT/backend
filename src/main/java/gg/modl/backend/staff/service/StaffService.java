@@ -2,17 +2,18 @@ package gg.modl.backend.staff.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import gg.modl.backend.email.EmailAddressUtil;
-import gg.modl.backend.infrastructure.exception.ConflictException;
-import gg.modl.backend.infrastructure.exception.ForbiddenException;
-import gg.modl.backend.infrastructure.exception.ResourceNotFoundException;
-import gg.modl.backend.infrastructure.exception.ValidationException;
 import gg.modl.backend.database.mongo.repository.InvitationMongoRepository;
 import gg.modl.backend.database.mongo.repository.PlayerMongoRepository;
 import gg.modl.backend.database.mongo.repository.PunishmentMongoRepository;
 import gg.modl.backend.database.mongo.repository.ServerMongoRepository;
 import gg.modl.backend.database.mongo.repository.StaffMongoRepository;
 import gg.modl.backend.database.mongo.repository.StaffRoleMongoRepository;
+import gg.modl.backend.email.EmailAddressUtil;
+import gg.modl.backend.infrastructure.exception.ConflictException;
+import gg.modl.backend.infrastructure.exception.ForbiddenException;
+import gg.modl.backend.infrastructure.exception.ResourceNotFoundException;
+import gg.modl.backend.infrastructure.exception.ValidationException;
+import gg.modl.backend.infrastructure.util.UuidUtil;
 import gg.modl.backend.player.PlayerService;
 import gg.modl.backend.player.data.Player;
 import gg.modl.backend.player.service.PlayerDataUtils;
@@ -392,7 +393,7 @@ public class StaffService {
     }
 
     public boolean markStaffDisconnected(Server server, String minecraftUuid) {
-        return staffRepository.updateLastSeenByAssignedMinecraftUuid(server, normalizeUuid(minecraftUuid));
+        return staffRepository.updateLastSeenByAssignedMinecraftUuid(server, UuidUtil.normalizeUuid(minecraftUuid));
     }
 
     public Optional<StaffResponse> assignMinecraftPlayer(Server server, String username, AssignMinecraftPlayerRequest request) {
@@ -414,7 +415,7 @@ public class StaffService {
         }
 
         Player player = request.minecraftUuid() != null && !request.minecraftUuid().isEmpty()
-                        ? playerRepository.findByMinecraftUuid(server, normalizeUuid(request.minecraftUuid())).orElse(null)
+                        ? playerRepository.findByMinecraftUuid(server, UuidUtil.normalizeUuid(request.minecraftUuid())).orElse(null)
                         : playerService.findBestByUsername(server, request.minecraftUsername()).orElse(null);
         if (player == null) {
             throw new ResourceNotFoundException("Minecraft player not found");
@@ -554,7 +555,4 @@ public class StaffService {
         staffByEmailCache.invalidateAll();
     }
 
-    private static String normalizeUuid(String value) {
-        return value == null ? null : value.toLowerCase(java.util.Locale.ROOT);
-    }
 }

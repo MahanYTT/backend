@@ -2,12 +2,11 @@ package gg.modl.backend.email;
 
 import jakarta.mail.internet.InternetAddress;
 import java.util.Locale;
+import lombok.experimental.UtilityClass;
 
-public final class EmailAddressUtil {
+@UtilityClass
+public class EmailAddressUtil {
     private static final int MAX_EMAIL_LENGTH = 254;
-
-    private EmailAddressUtil() {
-    }
 
     public static String normalizeIfValid(String email) {
         String normalized = normalize(email);

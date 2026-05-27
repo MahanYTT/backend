@@ -3,15 +3,15 @@ package gg.modl.backend.billing.service;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
-import gg.modl.backend.infrastructure.exception.ConflictException;
-import gg.modl.backend.infrastructure.exception.ExternalServiceException;
-import gg.modl.backend.infrastructure.exception.ForbiddenException;
-import gg.modl.backend.infrastructure.exception.ResourceNotFoundException;
 import gg.modl.backend.billing.dto.response.BillingStatusResponse;
 import gg.modl.backend.billing.dto.response.CancelResponse;
 import gg.modl.backend.billing.dto.response.CheckoutSessionResponse;
 import gg.modl.backend.billing.dto.response.PortalSessionResponse;
 import gg.modl.backend.billing.dto.response.ResubscribeResponse;
+import gg.modl.backend.infrastructure.exception.ConflictException;
+import gg.modl.backend.infrastructure.exception.ExternalServiceException;
+import gg.modl.backend.infrastructure.exception.ForbiddenException;
+import gg.modl.backend.infrastructure.exception.ResourceNotFoundException;
 import gg.modl.backend.role.service.PermissionService;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.server.data.ServerPlan;
@@ -30,6 +30,7 @@ public class BillingService {
     private final StripeService stripeService;
     private final ServerMutationHelper serverMutationHelper;
     private final PermissionService permissionService;
+    private final UsageTrackingService usageTrackingService;
 
     public void requireStripeConfigured() {
         if (!stripeService.isConfigured()) {
@@ -66,8 +67,8 @@ public class BillingService {
         }
 
         try {
-            com.stripe.model.billingportal.Session session = stripeService.createPortalSession(server.getStripeCustomerId(), server.getCustomDomain());
-            return new PortalSessionResponse(session.getUrl());
+            String portalUrl = stripeService.createPortalSessionUrl(server.getStripeCustomerId(), server.getCustomDomain());
+            return new PortalSessionResponse(portalUrl);
         } catch (StripeException e) {
             throw new ExternalServiceException("Failed to create portal session", e);
         }
@@ -119,11 +120,13 @@ public class BillingService {
                 Date periodStartDate = stripeService.extractPeriodStart(subscription);
                 Date periodEndDate = stripeService.extractPeriodEnd(subscription);
 
+                usageTrackingService.applyBillingPeriodRollover(server, periodStartDate, periodEndDate);
+
                 boolean needsUpdate = effectiveSubscriptionStatus != currentStatus
-                                      || (periodEndDate != null && (currentPeriodEnd == null || Math.abs(
-                    currentPeriodEnd.getTime() - periodEndDate.getTime()) > 1000))
-                                      || (periodStartDate != null && (currentPeriodStart == null || Math.abs(
-                    currentPeriodStart.getTime() - periodStartDate.getTime()) > 1000));
+                                      || (periodEndDate != null && (server.getCurrentPeriodEnd() == null || Math.abs(
+                    server.getCurrentPeriodEnd().getTime() - periodEndDate.getTime()) > 1000))
+                                      || (periodStartDate != null && (server.getCurrentPeriodStart() == null || Math.abs(
+                    server.getCurrentPeriodStart().getTime() - periodStartDate.getTime()) > 1000));
 
                 if (needsUpdate) {
                     Date finalPeriodStartDate = periodStartDate;
@@ -137,15 +140,11 @@ public class BillingService {
                             current.setCurrentPeriodEnd(finalPeriodEndDate);
                         }
                     });
-
-                    currentStatus = effectiveSubscriptionStatus;
-                    if (periodStartDate != null) {
-                        currentPeriodStart = periodStartDate;
-                    }
-                    if (periodEndDate != null) {
-                        currentPeriodEnd = periodEndDate;
-                    }
                 }
+
+                currentStatus = server.getSubscriptionStatus();
+                currentPeriodStart = server.getCurrentPeriodStart();
+                currentPeriodEnd = server.getCurrentPeriodEnd();
             } catch (StripeException exception) {
                 log.error("Error fetching subscription from Stripe", exception);
             }
@@ -206,6 +205,7 @@ public class BillingService {
             String subscriptionId = subscriptionResult.getId();
             SubscriptionStatus subscriptionStatus = parseSubscriptionStatus(subscriptionResult.getStatus());
 
+            usageTrackingService.applyBillingPeriodRollover(server, periodStartDate, periodEndDate);
             serverMutationHelper.mutate(server, current -> {
                 current.setStripeSubscriptionId(subscriptionId);
                 current.setSubscriptionStatus(subscriptionStatus);

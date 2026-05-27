@@ -16,7 +16,10 @@ class RealtimeMessageRateLimiterTest {
     void springCanCreateRateLimiterBeanWithRealtimePropertiesDependency() {
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
             context.registerBean(RealtimeProperties.class);
-            context.register(RealtimeMessageRateLimiter.class);
+            context.registerBean(
+                RealtimeMessageRateLimiter.class,
+                () -> new RealtimeMessageRateLimiter(context.getBean(RealtimeProperties.class))
+            );
 
             assertDoesNotThrow(context::refresh);
 

@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -124,7 +126,7 @@ public class RateLimitConfig {
         return RateLimitTier.PUBLIC_STANDARD;
     }
 
-    private boolean isHeavyOperation(String path, String method, Set<String> writePatterns, Set<String> anyMethodPatterns) {
+    private static boolean isHeavyOperation(String path, String method, Set<String> writePatterns, Set<String> anyMethodPatterns) {
         if (isWriteMethod(method)) {
             if (path.contains("/tickets") && !path.contains("/replies")) {
                 return true;
@@ -143,10 +145,12 @@ public class RateLimitConfig {
         return false;
     }
 
-    private boolean isWriteMethod(String method) {
+    private static boolean isWriteMethod(String method) {
         return "POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method);
     }
 
+    @Getter
+    @RequiredArgsConstructor
     public enum RateLimitTier {
         MINECRAFT_LOGIN(10000, Duration.ofMinutes(1)),
         MINECRAFT_STANDARD(1000, Duration.ofMinutes(1)),
@@ -171,19 +175,6 @@ public class RateLimitConfig {
 
         private final int capacity;
         private final Duration refillDuration;
-
-        RateLimitTier(int capacity, Duration refillDuration) {
-            this.capacity = capacity;
-            this.refillDuration = refillDuration;
-        }
-
-        public int getCapacity() {
-            return capacity;
-        }
-
-        public Duration getRefillDuration() {
-            return refillDuration;
-        }
     }
 
     private record PathRule(String prefix, RateLimitTier tier) {}

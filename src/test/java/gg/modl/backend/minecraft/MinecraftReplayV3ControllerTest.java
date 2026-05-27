@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,8 +22,8 @@ import gg.modl.backend.infrastructure.proto.ProtobufMediaTypes;
 import gg.modl.backend.infrastructure.rest.RESTMappingV1;
 import gg.modl.backend.infrastructure.rest.RESTMappingV3;
 import gg.modl.backend.infrastructure.rest.RequestAttribute;
-import gg.modl.backend.replay.controller.MinecraftReplayController;
-import gg.modl.backend.replay.controller.MinecraftReplayV3Controller;
+import gg.modl.backend.replay.controller.v1.MinecraftReplayController;
+import gg.modl.backend.replay.controller.v3.MinecraftReplayV3Controller;
 import gg.modl.backend.replay.dto.InitReplayUploadResponse;
 import gg.modl.backend.replay.service.ReplayService;
 import gg.modl.backend.server.data.Server;
@@ -36,20 +35,23 @@ import gg.modl.proto.modl.v1.ReplayConfirmResponse;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+@ExtendWith(MockitoExtension.class)
 class MinecraftReplayV3ControllerTest {
-    private ReplayService replayService;
+    @Mock private ReplayService replayService;
     private MockMvc v3MockMvc;
     private MockMvc v1MockMvc;
     private Server server;
 
     @BeforeEach
     void setUp() {
-        replayService = mock(ReplayService.class);
         server = new Server("Demo", "demo", "server_demo", "admin@example.com", true, ServerPlan.FREE);
 
         v3MockMvc = MockMvcBuilders.standaloneSetup(new MinecraftReplayV3Controller(replayService))

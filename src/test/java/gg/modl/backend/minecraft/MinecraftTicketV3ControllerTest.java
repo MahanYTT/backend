@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.verify;
@@ -27,7 +26,7 @@ import gg.modl.backend.infrastructure.rest.RESTMappingV3;
 import gg.modl.backend.infrastructure.rest.RequestAttribute;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.server.data.ServerPlan;
-import gg.modl.backend.ticket.controller.MinecraftTicketsV3Controller;
+import gg.modl.backend.ticket.controller.v3.MinecraftTicketsV3Controller;
 import gg.modl.backend.ticket.data.Ticket;
 import gg.modl.backend.ticket.data.TicketCategory;
 import gg.modl.backend.ticket.data.TicketPriority;
@@ -50,24 +49,26 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+@ExtendWith(MockitoExtension.class)
 class MinecraftTicketV3ControllerTest {
     private static final String PLAYER_UUID = "11111111-2222-3333-4444-555555555555";
     private static final String REPORTED_PLAYER_UUID = "22222222-3333-4444-5555-666666666666";
 
-    private MinecraftTicketService ticketService;
-    private AITicketAnalysisService aiTicketAnalysisService;
+    @Mock private MinecraftTicketService ticketService;
+    @Mock private AITicketAnalysisService aiTicketAnalysisService;
     private MockMvc mockMvc;
     private Server server;
 
     @BeforeEach
     void setUp() {
-        ticketService = mock(MinecraftTicketService.class);
-        aiTicketAnalysisService = mock(AITicketAnalysisService.class);
         server = new Server("Demo", "demo", "server_demo", "admin@example.com", true, ServerPlan.FREE);
 
         mockMvc = MockMvcBuilders.standaloneSetup(new MinecraftTicketsV3Controller(ticketService, aiTicketAnalysisService))

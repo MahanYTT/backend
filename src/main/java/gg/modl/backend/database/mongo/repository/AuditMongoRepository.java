@@ -2,7 +2,6 @@ package gg.modl.backend.database.mongo.repository;
 
 import gg.modl.backend.audit.data.AuditLog;
 import gg.modl.backend.database.CollectionName;
-
 import gg.modl.backend.database.mongo.TenantMongoAccess;
 import gg.modl.backend.database.mongo.fields.AuditLogFields;
 import gg.modl.backend.database.mongo.fields.PlayerFields;

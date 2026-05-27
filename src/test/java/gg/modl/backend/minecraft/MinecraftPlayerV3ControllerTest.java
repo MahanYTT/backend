@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,8 +26,8 @@ import gg.modl.backend.infrastructure.proto.ProtobufMediaTypes;
 import gg.modl.backend.infrastructure.rest.RequestAttribute;
 import gg.modl.backend.infrastructure.rest.RESTMappingV1;
 import gg.modl.backend.infrastructure.rest.RESTMappingV3;
-import gg.modl.backend.player.controller.MinecraftPlayerController;
-import gg.modl.backend.player.controller.MinecraftPlayerV3Controller;
+import gg.modl.backend.player.controller.v1.MinecraftPlayerController;
+import gg.modl.backend.player.controller.v3.MinecraftPlayerV3Controller;
 import gg.modl.backend.player.service.MinecraftPlayerService;
 import gg.modl.backend.player.service.PlayerLookupService;
 import gg.modl.backend.server.data.Server;
@@ -61,26 +60,28 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+@ExtendWith(MockitoExtension.class)
 class MinecraftPlayerV3ControllerTest {
     private static final UUID PLAYER_UUID = UUID.fromString("11111111-2222-3333-4444-555555555555");
 
-    private MinecraftPlayerService minecraftPlayerService;
-    private PlayerLookupService playerLookupService;
+    @Mock private MinecraftPlayerService minecraftPlayerService;
+    @Mock private PlayerLookupService playerLookupService;
     private MockMvc v3MockMvc;
     private MockMvc v1MockMvc;
     private Server server;
 
     @BeforeEach
     void setUp() {
-        minecraftPlayerService = mock(MinecraftPlayerService.class);
-        playerLookupService = mock(PlayerLookupService.class);
         server = new Server("Demo", "demo", "server_demo", "admin@example.com", true, ServerPlan.FREE);
 
         v3MockMvc = MockMvcBuilders.standaloneSetup(new MinecraftPlayerV3Controller(minecraftPlayerService, playerLookupService))

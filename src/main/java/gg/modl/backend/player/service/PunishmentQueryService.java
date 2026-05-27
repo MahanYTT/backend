@@ -5,11 +5,12 @@ import gg.modl.backend.database.mongo.repository.PlayerMongoRepository;
 import gg.modl.backend.database.mongo.repository.PunishmentMongoRepository;
 import gg.modl.backend.database.mongo.repository.StaffMongoRepository;
 import gg.modl.backend.infrastructure.exception.ResourceNotFoundException;
+import gg.modl.backend.infrastructure.util.UuidUtil;
 import gg.modl.backend.player.data.Player;
 import gg.modl.backend.player.data.punishment.Punishment;
+import gg.modl.backend.player.data.punishment.PunishmentData;
 import gg.modl.backend.player.data.punishment.PunishmentEvidence;
 import gg.modl.backend.player.data.punishment.PunishmentModification;
-import gg.modl.backend.player.data.punishment.PunishmentData;
 import gg.modl.backend.player.data.punishment.PunishmentNote;
 import gg.modl.backend.player.dto.response.PunishmentPreviewResponse;
 import gg.modl.backend.player.dto.response.PunishmentPreviewView;
@@ -31,6 +32,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -124,7 +126,7 @@ public class PunishmentQueryService {
         // Backward compat: map legacy offenseLevel to display status
         String offenseLevel = PunishmentData.getOffenseLevel(data);
         if (offenseLevel != null) {
-            return switch (offenseLevel.toLowerCase()) {
+            return switch (offenseLevel.toLowerCase(Locale.ROOT)) {
                 case "first" -> "low";
                 default -> offenseLevel; // "medium" and "habitual" stay as-is
             };
@@ -333,7 +335,7 @@ public class PunishmentQueryService {
     }
 
     public PunishmentPreviewView previewPunishment(Server server, String playerUuid, int typeOrdinal) {
-        Player player = playerRepository.findByMinecraftUuid(server, normalizeUuid(playerUuid)).orElse(null);
+        Player player = playerRepository.findByMinecraftUuid(server, UuidUtil.normalizeUuid(playerUuid)).orElse(null);
         if (player == null) {
             return PunishmentPreviewResponse.error("Player not found");
         }
@@ -535,7 +537,4 @@ public class PunishmentQueryService {
     ) {
     }
 
-    private static String normalizeUuid(String value) {
-        return value == null ? null : value.toLowerCase(java.util.Locale.ROOT);
-    }
 }

@@ -2,6 +2,8 @@ package gg.modl.backend.ticket.service;
 
 import gg.modl.backend.database.mongo.repository.StaffMongoRepository;
 import gg.modl.backend.database.mongo.repository.TicketMongoRepository;
+import gg.modl.backend.realtime.dispatch.RealtimeEventDispatcher;
+import gg.modl.backend.realtime.dispatch.RealtimeOutboundEvent;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.staff.data.Staff;
 import gg.modl.backend.ticket.data.Ticket;
@@ -9,6 +11,9 @@ import gg.modl.backend.ticket.data.TicketReply;
 import gg.modl.backend.ticket.dto.response.SubscriptionUpdateResponse;
 import gg.modl.backend.ticket.dto.response.TicketSubscriptionResponse;
 import gg.modl.backend.ticket.util.TicketAssigneeUtil;
+import gg.modl.proto.modl.v1.AssignedTicketSubscriptionChangedEvent;
+import gg.modl.proto.modl.v1.RealtimeEnvelope;
+import gg.modl.proto.modl.v1.Topic;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -25,6 +30,7 @@ import org.springframework.stereotype.Service;
 public class TicketSubscriptionService {
     private final StaffMongoRepository staffRepository;
     private final TicketMongoRepository ticketRepository;
+    private final RealtimeEventDispatcher realtimeEventDispatcher;
     private static final int MAX_UPDATES_LIMIT = 25;
     private static final int MAX_TICKETS_TO_SCAN = 250;
 
@@ -55,7 +61,11 @@ public class TicketSubscriptionService {
     }
 
     public boolean unsubscribe(Server server, String staffEmail, String ticketId) {
-        return staffRepository.deactivateSubscription(server, staffEmail, ticketId);
+        boolean removed = staffRepository.deactivateSubscription(server, staffEmail, ticketId);
+        if (removed) {
+            publishAssignedTicketSubscriptionChanged(server, staffEmail);
+        }
+        return removed;
     }
 
     public List<SubscriptionUpdateResponse> getUpdates(Server server, String staffEmail, int limit) {
@@ -163,6 +173,7 @@ public class TicketSubscriptionService {
         subscription.setSubscribedAt(new Date());
         subscription.setActive(true);
         staffRepository.addTicketSubscription(server, staffEmail, subscription);
+        publishAssignedTicketSubscriptionChanged(server, staffEmail);
     }
 
     public void markTicketAsRead(Server server, String ticketId, String staffEmail) {
@@ -239,5 +250,24 @@ public class TicketSubscriptionService {
 
         updates.sort((a, b) -> b.replyAt().compareTo(a.replyAt()));
         return updates.stream().limit(safeLimit).toList();
+    }
+
+    private void publishAssignedTicketSubscriptionChanged(Server server, String staffEmail) {
+        try {
+            AssignedTicketSubscriptionChangedEvent.Builder payload = AssignedTicketSubscriptionChangedEvent.newBuilder();
+            if (staffEmail != null) {
+                payload.setStaffId(staffEmail);
+            }
+            realtimeEventDispatcher.publish(new RealtimeOutboundEvent(
+                server.getId(),
+                Topic.TOPIC_PANEL_ASSIGNED_TICKETS,
+                RealtimeEnvelope.newBuilder()
+                    .setEventId(server.getId() + "::assigned-ticket-sub::" + staffEmail + "::" + System.nanoTime())
+                    .setAssignedTicketSubscriptionChanged(payload)
+                    .build()
+            ));
+        } catch (RuntimeException ex) {
+            log.warn("realtime publish failed for assigned ticket subscription change for staff {}", staffEmail, ex);
+        }
     }
 }

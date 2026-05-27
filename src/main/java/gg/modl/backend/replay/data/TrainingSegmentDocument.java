@@ -1,13 +1,15 @@
 package gg.modl.backend.replay.data;
 
 import java.util.Date;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.bson.types.Binary;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @Document
 public class TrainingSegmentDocument {
@@ -18,8 +20,8 @@ public class TrainingSegmentDocument {
     private String serverDatabaseName;
     private String playerUuid;
     private String playerName;
-    private String verdict;        // "legit" | "cheating"
-    private String cheatType;      // "aim", "scaffold", etc. (null for legit)
+    private String verdict;
+    private String cheatType;
     private int confidence;
     private String notes;
     private long startMs;

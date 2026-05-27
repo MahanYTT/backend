@@ -3,8 +3,6 @@ package gg.modl.backend.audit.controller;
 import gg.modl.backend.audit.dto.request.BulkPunishmentActionRequest;
 import gg.modl.backend.audit.dto.request.DateRangeRollbackRequest;
 import gg.modl.backend.audit.dto.request.RollbackRequest;
-import gg.modl.backend.infrastructure.exception.ForbiddenException;
-import gg.modl.backend.infrastructure.exception.ValidationException;
 import gg.modl.backend.audit.dto.response.ActivePunishmentResponse;
 import gg.modl.backend.audit.dto.response.PunishmentAuditResponse;
 import gg.modl.backend.audit.dto.response.StaffDetailsResponse;
@@ -12,11 +10,13 @@ import gg.modl.backend.audit.dto.response.StaffPerformanceResponse;
 import gg.modl.backend.audit.service.AuditService;
 import gg.modl.backend.audit.service.StaffPerformanceService;
 import gg.modl.backend.database.CollectionName;
-import gg.modl.backend.role.service.PermissionService;
+import gg.modl.backend.infrastructure.exception.ForbiddenException;
+import gg.modl.backend.infrastructure.exception.ValidationException;
 import gg.modl.backend.infrastructure.rest.RESTMappingV1;
 import gg.modl.backend.infrastructure.rest.RequestUtil;
-import gg.modl.backend.server.data.Server;
 import gg.modl.backend.infrastructure.validation.RequestValidationLimits;
+import gg.modl.backend.role.service.PermissionService;
+import gg.modl.backend.server.data.Server;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -66,8 +66,8 @@ public class AuditController {
         @RequestParam(defaultValue = "30d") String period,
         HttpServletRequest request
     ) {
-        Server server = RequestUtil.getRequestServer(request);
-        List<StaffPerformanceResponse> performance = staffPerformanceService.getStaffPerformance(server, period);
+        final Server server = RequestUtil.getRequestServer(request);
+        final List<StaffPerformanceResponse> performance = staffPerformanceService.getStaffPerformance(server, period);
         return ResponseEntity.ok(performance);
     }
 
@@ -77,8 +77,8 @@ public class AuditController {
         @RequestParam(defaultValue = "30d") String period,
         HttpServletRequest request
     ) {
-        Server server = RequestUtil.getRequestServer(request);
-        StaffDetailsResponse details = staffPerformanceService.getStaffDetails(server, username, period);
+        final Server server = RequestUtil.getRequestServer(request);
+        final StaffDetailsResponse details = staffPerformanceService.getStaffDetails(server, username, period);
         return ResponseEntity.ok(details);
     }
 
@@ -87,8 +87,8 @@ public class AuditController {
         @RequestParam(defaultValue = "active") String status,
         HttpServletRequest request
     ) {
-        Server server = RequestUtil.getRequestServer(request);
-        List<ActivePunishmentResponse> punishments = auditService.getPunishmentsList(server, status);
+        final Server server = RequestUtil.getRequestServer(request);
+        final List<ActivePunishmentResponse> punishments = auditService.getPunishmentsList(server, status);
         return ResponseEntity.ok(punishments);
     }
 
@@ -98,22 +98,22 @@ public class AuditController {
         @RequestParam(defaultValue = "false") boolean canRollback,
         HttpServletRequest request
     ) {
-        Server server = RequestUtil.getRequestServer(request);
-        List<PunishmentAuditResponse> punishments = auditService.getPunishments(server, limit, canRollback);
+        final Server server = RequestUtil.getRequestServer(request);
+        final List<PunishmentAuditResponse> punishments = auditService.getPunishments(server, limit, canRollback);
         return ResponseEntity.ok(punishments);
     }
 
-    @PostMapping("/punishments/{id}/rollback")
+    @PostMapping({"/punishments/{id}/rollback", "/punishment/{id}/rollback"})
     public ResponseEntity<?> rollbackPunishment(
         @PathVariable String id,
         @RequestBody(required = false) @Valid RollbackRequest rollbackRequest,
         HttpServletRequest request
     ) {
-        Server server = RequestUtil.getRequestServer(request);
-        String performerUsername = RequestUtil.getCurrentUsername(request);
+        final Server server = RequestUtil.getRequestServer(request);
+        final String performerUsername = RequestUtil.getCurrentUsername(request);
 
-        String reason = rollbackRequest != null ? rollbackRequest.reason() : "Admin rollback";
-        boolean success = auditService.rollbackPunishment(server, id, reason, performerUsername);
+        final String reason = rollbackRequest != null ? rollbackRequest.reason() : "Admin rollback";
+        final boolean success = auditService.rollbackPunishment(server, id, reason, performerUsername);
 
         if (success) {
             return ResponseEntity.ok(Map.of(
@@ -130,11 +130,11 @@ public class AuditController {
         @RequestBody(required = false) @Valid RollbackRequest rollbackRequest,
         HttpServletRequest request
     ) {
-        Server server = RequestUtil.getRequestServer(request);
-        String performerUsername = RequestUtil.getCurrentUsername(request);
+        final Server server = RequestUtil.getRequestServer(request);
+        final String performerUsername = RequestUtil.getCurrentUsername(request);
 
-        String reason = rollbackRequest != null ? rollbackRequest.reason() : "Bulk rollback by admin";
-        int count = auditService.rollbackAllPunishmentsByStaff(server, username, reason, performerUsername);
+        final String reason = rollbackRequest != null ? rollbackRequest.reason() : "Bulk rollback by admin";
+        final int count = auditService.rollbackAllPunishmentsByStaff(server, username, reason, performerUsername);
 
         return ResponseEntity.ok(Map.of(
             "success", true,
@@ -149,15 +149,15 @@ public class AuditController {
         @RequestBody @Valid DateRangeRollbackRequest rollbackRequest,
         HttpServletRequest request
     ) {
-        Server server = RequestUtil.getRequestServer(request);
-        String performerUsername = RequestUtil.getCurrentUsername(request);
+        final Server server = RequestUtil.getRequestServer(request);
+        final String performerUsername = RequestUtil.getCurrentUsername(request);
 
         if (rollbackRequest.startDate() == null || rollbackRequest.endDate() == null) {
             throw new ValidationException("Start date and end date are required");
         }
 
-        String reason = rollbackRequest.reason() != null ? rollbackRequest.reason() : "Bulk rollback by admin";
-        int count = auditService.rollbackPunishmentsByDateRange(
+        final String reason = rollbackRequest.reason() != null ? rollbackRequest.reason() : "Bulk rollback by admin";
+        final int count = auditService.rollbackPunishmentsByDateRange(
             server,
             username,
             rollbackRequest.startDate(),
@@ -178,11 +178,11 @@ public class AuditController {
         @RequestBody @Valid BulkPunishmentActionRequest actionRequest,
         HttpServletRequest request
     ) {
-        Server server = RequestUtil.getRequestServer(request);
+        final Server server = RequestUtil.getRequestServer(request);
         requireSuperAdmin(server, request);
 
-        String performerUsername = RequestUtil.getCurrentUsername(request);
-        int count = auditService.bulkPardonByType(
+        final String performerUsername = RequestUtil.getCurrentUsername(request);
+        final int count = auditService.bulkPardonByType(
             server, actionRequest.typeOrdinals(), actionRequest.reason(), performerUsername);
 
         return ResponseEntity.ok(Map.of(
@@ -197,15 +197,15 @@ public class AuditController {
         @RequestBody @Valid BulkPunishmentActionRequest actionRequest,
         HttpServletRequest request
     ) {
-        Server server = RequestUtil.getRequestServer(request);
+        final Server server = RequestUtil.getRequestServer(request);
         requireSuperAdmin(server, request);
 
         if (actionRequest.newDurationMs() == null) {
             throw new ValidationException("newDurationMs is required for set-expiration");
         }
 
-        String performerUsername = RequestUtil.getCurrentUsername(request);
-        int count = auditService.bulkSetExpirationByType(
+        final String performerUsername = RequestUtil.getCurrentUsername(request);
+        final int count = auditService.bulkSetExpirationByType(
             server, actionRequest.typeOrdinals(), actionRequest.newDurationMs(),
             actionRequest.reason(), performerUsername);
 
@@ -217,7 +217,7 @@ public class AuditController {
     }
 
     private void requireSuperAdmin(Server server, HttpServletRequest request) {
-        String email = RequestUtil.getSessionEmail(request);
+        final String email = RequestUtil.getSessionEmail(request);
         if (!permissionService.isSuperAdmin(server, email)) {
             throw new ForbiddenException("Only super admins can perform this action");
         }
@@ -230,13 +230,13 @@ public class AuditController {
         @RequestParam(defaultValue = "0") @Min(0) int skip,
         HttpServletRequest request
     ) {
-        Server server = RequestUtil.getRequestServer(request);
+        final Server server = RequestUtil.getRequestServer(request);
 
         if (!ALLOWED_TABLES.contains(table)) {
             throw new ValidationException("Invalid table name");
         }
 
-        Map<String, Object> result = auditService.getDatabaseTable(server, table, limit, skip);
+        final Map<String, Object> result = auditService.getDatabaseTable(server, table, limit, skip);
         return ResponseEntity.ok(result);
     }
 }

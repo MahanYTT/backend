@@ -1,10 +1,11 @@
 package gg.modl.backend.ticket.service;
 
-import gg.modl.backend.infrastructure.config.ModlProperties;
 import gg.modl.backend.database.mongo.repository.PlayerMongoRepository;
 import gg.modl.backend.email.EmailAddressUtil;
 import gg.modl.backend.email.EmailHTMLTemplate;
 import gg.modl.backend.email.EmailService;
+import gg.modl.backend.infrastructure.config.ModlProperties;
+import gg.modl.backend.infrastructure.util.UuidUtil;
 import gg.modl.backend.player.data.Player;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.ticket.data.Ticket;
@@ -118,7 +119,7 @@ public class TicketNotificationService {
     }
 
     private Player findPlayer(Server server, String playerUuid) {
-        return playerRepository.findByMinecraftUuid(server, normalizeUuid(playerUuid)).orElse(null);
+        return playerRepository.findByMinecraftUuid(server, UuidUtil.normalizeUuid(playerUuid)).orElse(null);
     }
 
     private void appendNotification(Server server, Player player, Map<String, Object> notification) {
@@ -241,7 +242,4 @@ public class TicketNotificationService {
         }
     }
 
-    private static String normalizeUuid(String value) {
-        return value == null ? null : value.toLowerCase(java.util.Locale.ROOT);
-    }
 }

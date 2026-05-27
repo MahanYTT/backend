@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import gg.modl.backend.database.mongo.repository.StaffMongoRepository;
 import gg.modl.backend.database.mongo.repository.TicketMongoRepository;
+import gg.modl.backend.realtime.dispatch.RealtimeEventDispatcher;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.server.data.ServerPlan;
 import gg.modl.backend.settings.data.QuickResponseSettings;
@@ -68,13 +69,16 @@ class TicketServiceTest {
     @Mock
     private WebhookSettingsService webhookSettingsService;
 
+    @Mock
+    private RealtimeEventDispatcher realtimeEventDispatcher;
+
     private TicketService ticketService;
     private MinecraftTicketService minecraftTicketService;
 
     @BeforeEach
     void setUp() {
-        ticketService = new TicketService(ticketRepository, staffRepository, quickResponseSettingsService, ticketFormSettingsService, notificationService, ticketIdGenerator, contentService, webhookSettingsService);
-        minecraftTicketService = new MinecraftTicketService(ticketRepository, notificationService, ticketIdGenerator);
+        ticketService = new TicketService(ticketRepository, staffRepository, quickResponseSettingsService, ticketFormSettingsService, notificationService, ticketIdGenerator, contentService, webhookSettingsService, realtimeEventDispatcher);
+        minecraftTicketService = new MinecraftTicketService(ticketRepository, notificationService, ticketIdGenerator, realtimeEventDispatcher);
     }
 
     @Test

@@ -12,6 +12,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -155,7 +156,7 @@ public class ServerHeaderFilter extends OncePerRequestFilter {
     }
 
     private boolean isLocalhost(String host) {
-        String normalized = host.toLowerCase();
+        String normalized = host.toLowerCase(Locale.ROOT);
         return "localhost".equals(normalized) || "0.0.0.0".equals(normalized)
                || "::1".equals(normalized) || normalized.startsWith("127.");
     }

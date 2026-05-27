@@ -13,8 +13,11 @@ import gg.modl.backend.server.data.ServerPlan;
 import gg.modl.backend.server.service.ServerTimestampService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class RoleServiceTest {
 
     @Test

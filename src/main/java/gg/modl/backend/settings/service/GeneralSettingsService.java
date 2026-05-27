@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -19,11 +20,11 @@ public class GeneralSettingsService {
     private static final int MAX_SERVER_NAME_LENGTH = 80;
     private static final int MAX_URL_LENGTH = 2048;
 
-    public GeneralSettings getGeneralSettings(Server server) {
+    public @NotNull GeneralSettings getGeneralSettings(@NotNull Server server) {
         return getGeneralSettingsState(server).data();
     }
 
-    public VersionedSettings<GeneralSettings> getGeneralSettingsState(Server server) {
+    public @NotNull VersionedSettings<GeneralSettings> getGeneralSettingsState(@NotNull Server server) {
         SettingsDocumentService.RawSettingsState state = settingsDocumentService.getRawState(server, SETTINGS_TYPE_GENERAL);
         GeneralSettings settings = mapToGeneralSettings(state.data());
         return new VersionedSettings<>(settings, state.version(), state.updatedAt());
@@ -74,10 +75,10 @@ public class GeneralSettingsService {
         return trimmed.substring(0, maxLength);
     }
 
-    public VersionedSettings<GeneralSettings> patchGeneralSettings(
-        Server server,
+    public @NotNull VersionedSettings<GeneralSettings> patchGeneralSettings(
+        @NotNull Server server,
         long expectedVersion,
-        GeneralSettings patch
+        @NotNull GeneralSettings patch
     ) {
         SettingsDocumentService.RawSettingsState current = settingsDocumentService.getRawState(server, SETTINGS_TYPE_GENERAL);
         Map<String, Object> data = new LinkedHashMap<>(current.data());

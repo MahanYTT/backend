@@ -4,9 +4,9 @@ import gg.modl.backend.database.CollectionName;
 import gg.modl.backend.database.mongo.AbstractServerMongoRepository;
 import gg.modl.backend.database.mongo.TenantMongoAccess;
 import gg.modl.backend.database.mongo.fields.StaffFields;
+import gg.modl.backend.email.EmailAddressUtil;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.staff.data.Staff;
-import gg.modl.backend.email.EmailAddressUtil;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -177,7 +177,7 @@ public class StaffMongoRepository extends AbstractServerMongoRepository<Staff> {
         return updateFirst(server, query, update).getModifiedCount() > 0;
     }
 
-    public boolean markSubscriptionRead(Server server, String email, String ticketId, java.util.Date lastReadAt) {
+    public boolean markSubscriptionRead(Server server, String email, String ticketId, Date lastReadAt) {
         Query query = Query.query(
             Criteria.where(StaffFields.EMAIL).is(email)
                 .and(StaffFields.SUBSCRIBED_TICKET_TICKET_ID).is(ticketId)

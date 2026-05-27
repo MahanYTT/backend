@@ -39,13 +39,7 @@ public class TrainingDataService {
     private static final int SUPPORTED_TRAINING_REPLAY_FORMAT_VERSION = 4;
 
     /**
-     * Asynchronously generates and persists training data segments for the given replay and labels.
-     * Each "cheating" label's time ranges and each "legit" label produce one segment each.
      * Exceptions are caught and logged; callers are not notified of failures.
-     *
-     * @param server the server context owning the replay
-     * @param doc    the replay document whose S3-stored bytes will be downloaded and sliced
-     * @param labels the human-provided labels to convert into training segments
      */
     @Async
     public void generateSegmentsAsync(Server server, ReplayDocument doc, List<ReplayLabel> labels) {
@@ -107,7 +101,6 @@ public class TrainingDataService {
                     }
                 }
             } else if ("legit".equals(label.getVerdict())) {
-                // For legit labels, create one segment spanning the full replay duration
                 long maxMs = 0;
                 for (ReplayEvent event : allEvents) {
                     if (event.getTimestampDeltaMs() > maxMs) {
@@ -143,7 +136,6 @@ public class TrainingDataService {
         long startMs,
         long endMs
     ) throws IOException {
-        // Filter events to the time range
         List<ReplayEvent> segmentEvents = new ArrayList<>();
         for (ReplayEvent event : allEvents) {
             if (event.getTimestampDeltaMs() >= startMs && event.getTimestampDeltaMs() <= endMs) {
@@ -151,7 +143,6 @@ public class TrainingDataService {
             }
         }
 
-        // Collect player positions during segment from PlayerSpawnEvent and PlayerMoveEvent
         Set<Long> playerBlockPositions = new HashSet<>();
         for (ReplayEvent event : segmentEvents) {
             if (event instanceof PlayerMoveEvent move && move.getUuid().equals(playerUuid)) {
@@ -161,7 +152,7 @@ public class TrainingDataService {
             }
         }
 
-        // Also check events before the segment for the player's position at segment start
+        // Seed the player's last known position before the segment window opens.
         for (ReplayEvent event : allEvents) {
             if (event.getTimestampDeltaMs() > startMs) {
                 break;
@@ -173,7 +164,6 @@ public class TrainingDataService {
             }
         }
 
-        // Filter block snapshot to blocks within BLOCK_FILTER_RADIUS of any player position
         List<BlockSnapshot> filteredBlocks;
         if (playerBlockPositions.isEmpty()) {
             filteredBlocks = snapshot;
@@ -186,7 +176,6 @@ public class TrainingDataService {
             }
         }
 
-        // Write segment as valid .modlreplay
         long timestampOffset = startMs;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ReplayWriter writer = new ReplayWriter(baos)) {

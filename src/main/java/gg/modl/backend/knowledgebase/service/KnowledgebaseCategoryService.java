@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -22,19 +23,19 @@ public class KnowledgebaseCategoryService {
     private final KnowledgebaseArticleMongoRepository articleRepository;
     private final Slugify slugify = Slugify.builder().build();
 
-    public List<KnowledgebaseCategory> getAllCategories(Server server) {
+    public @NotNull List<KnowledgebaseCategory> getAllCategories(@NotNull Server server) {
         return categoryRepository.findAllOrdered(server);
     }
 
-    public List<KnowledgebaseCategory> getVisibleCategories(Server server) {
+    public @NotNull List<KnowledgebaseCategory> getVisibleCategories(@NotNull Server server) {
         return categoryRepository.findVisibleOrdered(server);
     }
 
-    public Optional<KnowledgebaseCategory> getCategoryById(Server server, String id) {
+    public @NotNull Optional<KnowledgebaseCategory> getCategoryById(@NotNull Server server, @NotNull String id) {
         return categoryRepository.findByCategoryId(server, id);
     }
 
-    public KnowledgebaseCategory createCategory(Server server, CreateCategoryRequest request) {
+    public @NotNull KnowledgebaseCategory createCategory(@NotNull Server server, @NotNull CreateCategoryRequest request) {
         KnowledgebaseCategory category = KnowledgebaseCategory.builder()
             .name(request.name())
             .slug(slugify.slugify(request.name()))
@@ -48,7 +49,7 @@ public class KnowledgebaseCategoryService {
         return categoryRepository.saveEntity(server, category);
     }
 
-    public Optional<KnowledgebaseCategory> updateCategory(Server server, String id, UpdateCategoryRequest request) {
+    public @NotNull Optional<KnowledgebaseCategory> updateCategory(@NotNull Server server, @NotNull String id, @NotNull UpdateCategoryRequest request) {
         return categoryRepository.updateCategory(
             server,
             id,

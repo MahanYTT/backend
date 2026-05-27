@@ -3,6 +3,7 @@ package gg.modl.backend.migration.service;
 import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gg.modl.backend.database.mongo.repository.PlayerMongoRepository;
+import gg.modl.backend.infrastructure.util.IdGenerator;
 import gg.modl.backend.migration.dto.UpdateProgressRequest;
 import gg.modl.backend.migration.validation.MigrationValidator;
 import gg.modl.backend.player.PlayerDocumentIdGenerator;
@@ -28,7 +29,6 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import gg.modl.backend.infrastructure.util.IdGenerator;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -98,12 +98,10 @@ public class MigrationProcessor {
             for (int i = 0; i < players.size(); i++) {
                 Object playerObj = players.get(i);
 
-                if (!(playerObj instanceof Map<?, ?>)) {
+                if (!(playerObj instanceof Map<?, ?> playerMap)) {
                     recordsSkipped++;
                     continue;
                 }
-
-                Map<?, ?> playerMap = (Map<?, ?>) playerObj;
                 batch.add(playerMap);
 
                 if (batch.size() >= BATCH_SIZE || i == players.size() - 1) {
@@ -153,12 +151,12 @@ public class MigrationProcessor {
 
         for (Map<?, ?> playerMap : batch) {
             Object uuidObj = playerMap.get("minecraftUuid");
-            if (uuidObj == null || !(uuidObj instanceof String)) {
+            if (uuidObj == null || !(uuidObj instanceof String uuidStr)) {
                 skipped++;
                 continue;
             }
 
-            String uuid = validator.normalizeUuid((String) uuidObj);
+            String uuid = validator.normalizeUuid(uuidStr);
             if (!validator.isValidUuid(uuid)) {
                 skipped++;
                 continue;
@@ -218,7 +216,7 @@ public class MigrationProcessor {
 
     private Player buildNewPlayer(String uuid, Map<?, ?> data) {
         try {
-            Player player = Player.builder()
+            return Player.builder()
                 .id(PlayerDocumentIdGenerator.generate())
                 .minecraftUuid(UUID.fromString(uuid))
                 .usernames(parseUsernames(data.get("usernames")))
@@ -227,8 +225,6 @@ public class MigrationProcessor {
                 .punishments(parsePunishments(data.get("punishments")))
                 .data(parseData(data.get("data")))
                 .build();
-
-            return player;
         } catch (Exception e) {
             log.warn("Error building new player for UUID {}", uuid, e);
             return null;
@@ -237,15 +233,14 @@ public class MigrationProcessor {
 
     private List<IPEntry> parseIpAddresses(Object data) {
         List<IPEntry> result = new ArrayList<>();
-        if (!(data instanceof List<?>)) {
+        if (!(data instanceof List<?> dataList)) {
             return result;
         }
 
-        for (Object item : (List<?>) data) {
-            if (!(item instanceof Map<?, ?>)) {
+        for (Object item : dataList) {
+            if (!(item instanceof Map<?, ?> map)) {
                 continue;
             }
-            Map<?, ?> map = (Map<?, ?>) item;
 
             String ipAddress = (String) map.get("ipAddress");
             if (!validator.isValidIpAddress(ipAddress)) {
@@ -259,8 +254,8 @@ public class MigrationProcessor {
 
             List<Date> logins = new ArrayList<>();
             Object loginsObj = map.get("logins");
-            if (loginsObj instanceof List<?>) {
-                for (Object loginObj : (List<?>) loginsObj) {
+            if (loginsObj instanceof List<?> loginsList) {
+                for (Object loginObj : loginsList) {
                     Date login = validator.parseDate(loginObj);
                     if (login != null) {
                         logins.add(login);
@@ -285,11 +280,11 @@ public class MigrationProcessor {
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> parseData(Object data) {
-        if (data instanceof Map<?, ?>) {
+        if (data instanceof Map<?, ?> dataMap) {
             Map<String, Object> result = new HashMap<>();
-            for (Map.Entry<?, ?> entry : ((Map<?, ?>) data).entrySet()) {
-                if (entry.getKey() instanceof String) {
-                    result.put((String) entry.getKey(), entry.getValue());
+            for (Map.Entry<?, ?> entry : dataMap.entrySet()) {
+                if (entry.getKey() instanceof String key) {
+                    result.put(key, entry.getValue());
                 }
             }
             return result;
@@ -342,15 +337,14 @@ public class MigrationProcessor {
 
     private List<UsernameEntry> parseUsernames(Object data) {
         List<UsernameEntry> result = new ArrayList<>();
-        if (!(data instanceof List<?>)) {
+        if (!(data instanceof List<?> dataList)) {
             return result;
         }
 
-        for (Object item : (List<?>) data) {
-            if (!(item instanceof Map<?, ?>)) {
+        for (Object item : dataList) {
+            if (!(item instanceof Map<?, ?> map)) {
                 continue;
             }
-            Map<?, ?> map = (Map<?, ?>) item;
 
             String username = validator.sanitizeString((String) map.get("username"), 100);
             Date date = validator.parseDate(map.get("date"));
@@ -365,15 +359,14 @@ public class MigrationProcessor {
 
     private List<NoteEntry> parseNotes(Object data) {
         List<NoteEntry> result = new ArrayList<>();
-        if (!(data instanceof List<?>)) {
+        if (!(data instanceof List<?> dataList)) {
             return result;
         }
 
-        for (Object item : (List<?>) data) {
-            if (!(item instanceof Map<?, ?>)) {
+        for (Object item : dataList) {
+            if (!(item instanceof Map<?, ?> map)) {
                 continue;
             }
-            Map<?, ?> map = (Map<?, ?>) item;
 
             String text = validator.sanitizeString((String) map.get("text"), 5000);
             Date date = validator.parseDate(map.get("date"));
@@ -395,15 +388,14 @@ public class MigrationProcessor {
 
     private List<Punishment> parsePunishments(Object data) {
         List<Punishment> result = new ArrayList<>();
-        if (!(data instanceof List<?>)) {
+        if (!(data instanceof List<?> dataList)) {
             return result;
         }
 
-        for (Object item : (List<?>) data) {
-            if (!(item instanceof Map<?, ?>)) {
+        for (Object item : dataList) {
+            if (!(item instanceof Map<?, ?> map)) {
                 continue;
             }
-            Map<?, ?> map = (Map<?, ?>) item;
 
             String id = (String) map.get("id");
             if (id == null) {
@@ -422,8 +414,8 @@ public class MigrationProcessor {
 
             Object typeOrdinalObj = map.get("typeOrdinal");
             int typeOrdinal = 0;
-            if (typeOrdinalObj instanceof Number) {
-                typeOrdinal = ((Number) typeOrdinalObj).intValue();
+            if (typeOrdinalObj instanceof Number typeOrdinalNum) {
+                typeOrdinal = typeOrdinalNum.intValue();
             } else if (typeOrdinalObj instanceof String typeOrdinalString) {
                 try {
                     typeOrdinal = Integer.parseInt(typeOrdinalString);
@@ -434,10 +426,9 @@ public class MigrationProcessor {
 
             List<PunishmentNote> notes = new ArrayList<>();
             Object notesObj = map.get("notes");
-            if (notesObj instanceof List<?>) {
-                for (Object noteObj : (List<?>) notesObj) {
-                    if (noteObj instanceof Map<?, ?>) {
-                        Map<?, ?> noteMap = (Map<?, ?>) noteObj;
+            if (notesObj instanceof List<?> notesList) {
+                for (Object noteObj : notesList) {
+                    if (noteObj instanceof Map<?, ?> noteMap) {
                         String text = validator.sanitizeString((String) noteMap.get("text"), 5000);
                         Date date = validator.parseDate(noteMap.get("date"));
                         String noteIssuer = validator.sanitizeString((String) noteMap.get("issuerName"), 100);
@@ -455,20 +446,20 @@ public class MigrationProcessor {
 
             List<String> attachedTicketIds = new ArrayList<>();
             Object ticketIdsObj = map.get("attachedTicketIds");
-            if (ticketIdsObj instanceof List<?>) {
-                for (Object ticketId : (List<?>) ticketIdsObj) {
-                    if (ticketId instanceof String) {
-                        attachedTicketIds.add((String) ticketId);
+            if (ticketIdsObj instanceof List<?> ticketIdsList) {
+                for (Object ticketId : ticketIdsList) {
+                    if (ticketId instanceof String ticketIdStr) {
+                        attachedTicketIds.add(ticketIdStr);
                     }
                 }
             }
 
             Map<String, Object> punishmentData = new HashMap<>();
             Object dataObj = map.get("data");
-            if (dataObj instanceof Map<?, ?>) {
-                for (Map.Entry<?, ?> entry : ((Map<?, ?>) dataObj).entrySet()) {
-                    if (entry.getKey() instanceof String) {
-                        punishmentData.put((String) entry.getKey(), entry.getValue());
+            if (dataObj instanceof Map<?, ?> dataMap) {
+                for (Map.Entry<?, ?> entry : dataMap.entrySet()) {
+                    if (entry.getKey() instanceof String key) {
+                        punishmentData.put(key, entry.getValue());
                     }
                 }
             }
@@ -479,8 +470,8 @@ public class MigrationProcessor {
             }
 
             Object durationObj = map.get("duration");
-            if (durationObj instanceof Number) {
-                punishmentData.put("duration", ((Number) durationObj).longValue());
+            if (durationObj instanceof Number durationNum) {
+                punishmentData.put("duration", durationNum.longValue());
             }
 
             Date started = validator.parseDate(map.get("started"));

@@ -5,13 +5,15 @@ import gg.modl.backend.database.mongo.codegen.GenerateMongoFields;
 import gg.modl.backend.database.mongo.codegen.MongoFieldAlias;
 import gg.modl.backend.database.mongo.codegen.MongoFieldAliases;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.data.annotation.Id;
@@ -19,7 +21,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 import org.springframework.data.mongodb.core.mapping.FieldType;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -107,17 +110,32 @@ public class Ticket {
         if (this.replies == null) {
             this.replies = new ArrayList<>();
         }
-        return this.replies;
+        return Collections.unmodifiableList(this.replies);
     }
 
     public List<TicketNote> ensureNotes() {
         if (this.notes == null) {
             this.notes = new ArrayList<>();
         }
-        return this.notes;
+        return Collections.unmodifiableList(this.notes);
     }
 
-    @Data
+    public void addReply(@NotNull TicketReply reply) {
+        if (this.replies == null) {
+            this.replies = new ArrayList<>();
+        }
+        this.replies.add(reply);
+    }
+
+    public void addNote(@NotNull TicketNote note) {
+        if (this.notes == null) {
+            this.notes = new ArrayList<>();
+        }
+        this.notes.add(note);
+    }
+
+    @Getter
+    @Setter
     @AllArgsConstructor
     public static class ChatMessage {
         @NotNull

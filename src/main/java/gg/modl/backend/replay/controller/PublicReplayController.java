@@ -1,10 +1,10 @@
 package gg.modl.backend.replay.controller;
 
+import gg.modl.backend.infrastructure.rest.RESTMappingV1;
+import gg.modl.backend.infrastructure.rest.RequestUtil;
 import gg.modl.backend.replay.dto.PublicReplayResponse;
 import gg.modl.backend.replay.dto.SubmitReplayLabelsRequest;
 import gg.modl.backend.replay.service.ReplayService;
-import gg.modl.backend.infrastructure.rest.RESTMappingV1;
-import gg.modl.backend.infrastructure.rest.RequestUtil;
 import gg.modl.backend.server.data.Server;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;

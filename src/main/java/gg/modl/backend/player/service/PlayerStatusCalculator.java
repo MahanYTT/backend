@@ -15,8 +15,8 @@ import gg.modl.backend.settings.service.PunishmentTypeIndex;
 import gg.modl.backend.settings.service.PunishmentTypeService;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -78,8 +78,6 @@ public class PlayerStatusCalculator {
     }
 
     public boolean isPunishmentActive(Punishment punishment) {
-        String pId = punishment.getId();
-
         // Kicks (ordinal 0) are instant and never considered "active"
         if (punishment.getTypeOrdinal() == 0) {
             return false;
@@ -102,9 +100,7 @@ public class PlayerStatusCalculator {
             }
         }
 
-        // Check duration-based expiry
         Date effectiveExpiry = getEffectiveExpiry(punishment);
-
         return effectiveExpiry == null || !effectiveExpiry.before(new Date());
     }
 
@@ -137,15 +133,10 @@ public class PlayerStatusCalculator {
             return new Date(durationBase.getTime() + duration);
         }
 
-        // Count from started date, or current time if not yet started
-        // (unstarted punishments use current time so the plugin receives a proper
-        // expiration for display â€” nothing is persisted until the plugin acknowledges)
+        // Count from started date; unstarted punishments use current time so the plugin
+        // receives a proper expiration for display — nothing is persisted until acknowledged.
         Date baseDate = punishment.getStarted() != null ? punishment.getStarted() : new Date();
         return new Date(baseDate.getTime() + duration);
-    }
-
-    private Optional<PunishmentType> findTypeByOrdinal(Map<Integer, PunishmentType> typesByOrdinal, int ordinal) {
-        return Optional.ofNullable(typesByOrdinal.get(ordinal));
     }
 
     private String getStatusFromPoints(int points) {
@@ -203,7 +194,7 @@ public class PlayerStatusCalculator {
             if (rawOffenseLevel != null) {
                 offenseLevel = rawOffenseLevel;
             } else {
-                String statusVal = PunishmentData.getStatus(data) != null ? PunishmentData.getStatus(data).toLowerCase() : "";
+                String statusVal = PunishmentData.getStatus(data) != null ? PunishmentData.getStatus(data).toLowerCase(Locale.ROOT) : "";
                 offenseLevel = switch (statusVal) {
                     case "low" -> "first";
                     case "medium" -> "medium";
@@ -229,31 +220,21 @@ public class PlayerStatusCalculator {
      * Used to detect punishments eligible for stat-wipe execution.
      */
     public boolean isPunishmentNaturallyExpired(Punishment punishment) {
-        // Must have been started
         if (punishment.getStarted() == null) {
             return false;
         }
-
-        // Kicks are instant, not expirable
         if (punishment.getTypeOrdinal() == 0) {
             return false;
         }
-
-        // Must not have been pardoned
         for (PunishmentModification mod : punishment.getModifications()) {
-            String type = mod.type();
-            if (PunishmentModificationType.isPardon(type)) {
+            if (PunishmentModificationType.isPardon(mod.type())) {
                 return false;
             }
         }
-
-        // Must have a finite expiry (not permanent)
         Date effectiveExpiry = getEffectiveExpiry(punishment);
         if (effectiveExpiry == null) {
             return false;
         }
-
-        // Must have expired
         return effectiveExpiry.before(new Date());
     }
 

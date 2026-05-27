@@ -93,7 +93,8 @@ public class AITicketAnalysisService {
 
         final AIAnalysisResult result = parseResponse(rawResponse);
         if (result == null) {
-            return; // failed but we can just ignore
+            // parseResponse already logged the parse failure; analysis is best-effort.
+            return;
         }
 
         ticket.setAiAnalysis(result);
@@ -116,11 +117,11 @@ public class AITicketAnalysisService {
             return false;
         }
 
-        // Check AI usage cap via direct usage snapshot to avoid loading the full server document.
+        // Avoid loading the full server document by using a lightweight usage snapshot.
         final ServerMongoRepository.AIUsageSnapshot usageSnapshot = serverRepository.findAIUsageSnapshotById(server.getId()).orElse(null);
         if (usageSnapshot != null) {
-            long currentUsage = usageSnapshot.aiRequestsCurrentPeriod();
-            long limit = usageTrackingService.getAiBaseLimitRequests() + Math.max(0L, usageSnapshot.maxAiOverageRequests());
+            final long currentUsage = usageSnapshot.aiRequestsCurrentPeriod();
+            final long limit = usageTrackingService.getAiBaseLimitRequests() + Math.max(0L, usageSnapshot.maxAiOverageRequests());
             if (currentUsage >= limit) {
                 log.debug("Server {} has reached AI request limit ({}/{})", server.getServerName(), currentUsage, limit);
                 return false;
@@ -130,7 +131,7 @@ public class AITicketAnalysisService {
         return true;
     }
 
-    private boolean isChatReport(Ticket ticket) {
+    private static boolean isChatReport(Ticket ticket) {
         return ticket.getType() == TicketCategory.CHAT;
     }
 
@@ -167,11 +168,11 @@ public class AITicketAnalysisService {
     }
 
     private void applyPunishmentAndCloseTicket(Server server, Ticket ticket, AIAnalysisResult aiAnalysis, String staffName) {
-        UUID playerUuid = UUID.fromString(ticket.getReportedPlayerUuid());
-        AIAnalysisResult.SuggestedAction suggestion = aiAnalysis.getSuggestedAction();
-        String reason = aiAnalysis.getAnalysis();
+        final UUID playerUuid = UUID.fromString(ticket.getReportedPlayerUuid());
+        final AIAnalysisResult.SuggestedAction suggestion = aiAnalysis.getSuggestedAction();
+        final String reason = aiAnalysis.getAnalysis();
 
-        CreatePunishmentRequest request = new CreatePunishmentRequest(
+        final CreatePunishmentRequest request = new CreatePunishmentRequest(
             staffName,
             null,
             suggestion.getPunishmentTypeId(),
@@ -185,10 +186,10 @@ public class AITicketAnalysisService {
 
         punishmentLifecycleService.createPunishment(server, playerUuid, request);
 
-        Date now = new Date();
-        String typeName = punishmentTypeService.getPunishmentTypeName(server, suggestion.getPunishmentTypeId());
+        final Date now = new Date();
+        final String typeName = punishmentTypeService.getPunishmentTypeName(server, suggestion.getPunishmentTypeId());
 
-        TicketReply systemReply = TicketReply.builder()
+        final TicketReply systemReply = TicketReply.builder()
             .id(UUID.randomUUID().toString())
             .name(staffName)
             .content("This report has been reviewed and appropriate action has been taken. Thank you for your report.")
@@ -199,28 +200,22 @@ public class AITicketAnalysisService {
             .attachments(new ArrayList<>())
             .build();
 
-        TicketNote staffNote = TicketNote.builder()
+        final TicketNote staffNote = TicketNote.builder()
             .text("AI Analysis by " + staffName + ": " + typeName + " (" + suggestion.getSeverity() + "). Reason: " + reason)
             .issuerName(staffName)
             .date(now)
             .build();
 
         aiAnalysis.setWasAppliedAutomatically(true);
-        if (ticket.getReplies() == null) {
-            ticket.setReplies(new ArrayList<>());
-        }
-        if (ticket.getNotes() == null) {
-            ticket.setNotes(new ArrayList<>());
-        }
-        ticket.getReplies().add(systemReply);
-        ticket.getNotes().add(staffNote);
+        ticket.addReply(systemReply);
+        ticket.addNote(staffNote);
         ticket.setStatus(TicketStatus.CLOSED);
         ticket.setLocked(true);
         ticket.setUpdatedAt(now);
     }
 
     private String getSystemPrompt() {
-        SystemPrompt prompt = systemPromptRepository.findActive().orElse(null);
+        final SystemPrompt prompt = systemPromptRepository.findActive().orElse(null);
 
         if (prompt != null && prompt.getPrompt() != null && !prompt.getPrompt().isBlank()) {
             return prompt.getPrompt();
@@ -243,7 +238,7 @@ public class AITicketAnalysisService {
     }
 
     @NotNull
-    private String formatPunishmentTypes(@NotNull AIModerationSettings settings) {
+    private static String formatPunishmentTypes(@NotNull AIModerationSettings settings) {
         if (settings.getAiPunishmentConfigs() == null || settings.getAiPunishmentConfigs().isEmpty()) {
             return "No punishment types configured";
         }
@@ -275,7 +270,7 @@ public class AITicketAnalysisService {
 
             AIAnalysisResult.SuggestedAction suggestedAction = null;
             if (json.has("suggestedAction") && !json.get("suggestedAction").isNull()) {
-                JsonNode actionNode = json.get("suggestedAction");
+                final JsonNode actionNode = json.get("suggestedAction");
                 final Integer punishmentTypeId = parseIntField(actionNode, "punishmentTypeId");
                 final String severity = actionNode.get("severity").asText();
 

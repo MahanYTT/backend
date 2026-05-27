@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -19,35 +18,38 @@ import gg.modl.backend.infrastructure.proto.ProtoValidationAdvice;
 import gg.modl.backend.infrastructure.proto.ProtobufMediaTypes;
 import gg.modl.backend.infrastructure.rest.RESTMappingV3;
 import gg.modl.backend.infrastructure.rest.RequestAttribute;
-import gg.modl.backend.player.controller.MinecraftSyncV3Controller;
+import gg.modl.backend.player.controller.v3.MinecraftSyncV3Controller;
 import gg.modl.backend.player.service.MinecraftStartupService;
 import gg.modl.backend.player.service.MinecraftSyncService;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.server.data.ServerPlan;
+import gg.modl.proto.modl.v1.SimplePunishment;
 import gg.modl.proto.modl.v1.StartupRequest;
 import gg.modl.proto.modl.v1.StartupResponse;
+import gg.modl.proto.modl.v1.SyncData;
 import gg.modl.proto.modl.v1.SyncOnlinePlayer;
+import gg.modl.proto.modl.v1.SyncPendingPunishment;
 import gg.modl.proto.modl.v1.SyncRequest;
 import gg.modl.proto.modl.v1.SyncResponse;
 import gg.modl.proto.modl.v1.SyncServerStatus;
-import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+@ExtendWith(MockitoExtension.class)
 class MinecraftSyncV3ControllerTest {
-    private MinecraftSyncService minecraftSyncService;
-    private MinecraftStartupService minecraftStartupService;
+    @Mock private MinecraftSyncService minecraftSyncService;
+    @Mock private MinecraftStartupService minecraftStartupService;
     private MockMvc mockMvc;
     private Server server;
 
     @BeforeEach
     void setUp() {
-        minecraftSyncService = mock(MinecraftSyncService.class);
-        minecraftStartupService = mock(MinecraftStartupService.class);
         server = new Server("Demo", "demo", "server_demo", "admin@example.com", true, ServerPlan.FREE);
 
         mockMvc = MockMvcBuilders.standaloneSetup(new MinecraftSyncV3Controller(minecraftSyncService, minecraftStartupService))
@@ -69,15 +71,16 @@ class MinecraftSyncV3ControllerTest {
             eq(200),
             eq("hub"),
             eq("127.0.0.1")
-        )).thenReturn(Map.of(
-            "panelUrl", "https://demo.modl.gg",
-            "timestamp", "2026-05-12T00:00:00Z",
-            "serverInstanceId", "instance-1",
-            "realtimeEnabled", true,
-            "realtimeUrl", "wss://api.modl.gg/v3/realtime",
-            "realtimeProtocolVersion", 1,
-            "realtimeTopics", List.of("TOPIC_MINECRAFT_PERMISSIONS", "TOPIC_MINECRAFT_PUNISHMENT_TYPES")
-        ));
+        )).thenReturn(StartupResponse.newBuilder()
+            .setPanelUrl("https://demo.modl.gg")
+            .setTimestamp("2026-05-12T00:00:00Z")
+            .setServerInstanceId("instance-1")
+            .setRealtimeEnabled(true)
+            .setRealtimeUrl("wss://api.modl.gg/v3/realtime")
+            .setRealtimeProtocolVersion(1)
+            .addRealtimeTopics("TOPIC_MINECRAFT_PERMISSIONS")
+            .addRealtimeTopics("TOPIC_MINECRAFT_PUNISHMENT_TYPES")
+            .build());
 
         StartupRequest request = StartupRequest.newBuilder()
             .setServerVersion("1.21.8")
@@ -99,14 +102,35 @@ class MinecraftSyncV3ControllerTest {
         assertEquals("https://demo.modl.gg", response.getPanelUrl());
         assertEquals("2026-05-12T00:00:00Z", response.getTimestamp());
         assertEquals("instance-1", response.getServerInstanceId());
-        assertIfMethodPresent(response, "getRealtimeEnabled", true);
-        assertIfMethodPresent(response, "getRealtimeUrl", "wss://api.modl.gg/v3/realtime");
-        assertIfMethodPresent(response, "getRealtimeProtocolVersion", 1);
-        assertIfMethodPresent(response, "getRealtimeTopicsList", List.of("TOPIC_MINECRAFT_PERMISSIONS", "TOPIC_MINECRAFT_PUNISHMENT_TYPES"));
+        assertTrue(response.getRealtimeEnabled());
+        assertEquals("wss://api.modl.gg/v3/realtime", response.getRealtimeUrl());
+        assertEquals(1, response.getRealtimeProtocolVersion());
+        assertEquals(2, response.getRealtimeTopicsCount());
+        assertEquals("TOPIC_MINECRAFT_PERMISSIONS", response.getRealtimeTopics(0));
+        assertEquals("TOPIC_MINECRAFT_PUNISHMENT_TYPES", response.getRealtimeTopics(1));
     }
 
     @Test
     void v3SyncAcceptsBinaryRequestAndReturnsBinaryResponse() throws Exception {
+        SyncResponse stubbedResponse = SyncResponse.newBuilder()
+            .setTimestamp("2026-05-12T00:00:01Z")
+            .setData(SyncData.newBuilder()
+                .addPendingPunishments(SyncPendingPunishment.newBuilder()
+                    .setMinecraftUuid("11111111-2222-3333-4444-555555555555")
+                    .setUsername("Byteful")
+                    .setPunishment(SimplePunishment.newBuilder()
+                        .setType("Ban")
+                        .setDescription("Rule violation")
+                        .setId("punishment-1")
+                        .setStarted(true)
+                        .setOrdinal(2)
+                        .build())
+                    .build())
+                .setStaffPermissionsUpdatedAt(1_700_000_000_000L)
+                .setPunishmentTypesUpdatedAt(1_700_000_001_000L)
+                .build())
+            .build();
+
         when(minecraftSyncService.sync(
             same(server),
             eq("2026-05-12T00:00:00Z"),
@@ -116,31 +140,7 @@ class MinecraftSyncV3ControllerTest {
             any(),
             any(),
             eq("127.0.0.1")
-        )).thenReturn(Map.of(
-            "timestamp", "2026-05-12T00:00:01Z",
-            "data", Map.of(
-                "pendingPunishments", List.of(Map.of(
-                    "minecraftUuid", "11111111-2222-3333-4444-555555555555",
-                    "username", "Byteful",
-                    "punishment", Map.of(
-                        "type", "Ban",
-                        "description", "Rule violation",
-                        "id", "punishment-1",
-                        "started", true,
-                        "ordinal", 2
-                    )
-                )),
-                "recentlyStartedPunishments", List.of(),
-                "recentlyModifiedPunishments", List.of(),
-                "playerNotifications", List.of(),
-                "activeStaffMembers", List.of(),
-                "staffNotifications", List.of(),
-                "pendingStatWipes", List.of(),
-                "staff2faVerifications", List.of(),
-                "staffPermissionsUpdatedAt", 1_700_000_000_000L,
-                "punishmentTypesUpdatedAt", 1_700_000_001_000L
-            )
-        ));
+        )).thenReturn(stubbedResponse);
 
         SyncRequest request = SyncRequest.newBuilder()
             .setLastSyncTimestamp("2026-05-12T00:00:00Z")
@@ -184,13 +184,5 @@ class MinecraftSyncV3ControllerTest {
             any(),
             eq("127.0.0.1")
         );
-    }
-
-    private static void assertIfMethodPresent(Object target, String methodName, Object expected) throws Exception {
-        try {
-            assertEquals(expected, target.getClass().getMethod(methodName).invoke(target));
-        } catch (NoSuchMethodException ignored) {
-            // Published proto artifacts can lag additive local schema fields during rollout.
-        }
     }
 }

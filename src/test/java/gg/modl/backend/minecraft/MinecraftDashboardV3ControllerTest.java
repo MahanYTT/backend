@@ -2,7 +2,6 @@ package gg.modl.backend.minecraft;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -12,8 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import gg.modl.backend.dashboard.controller.MinecraftDashboardController;
-import gg.modl.backend.dashboard.controller.MinecraftDashboardV3Controller;
+import gg.modl.backend.dashboard.controller.v1.MinecraftDashboardController;
+import gg.modl.backend.dashboard.controller.v3.MinecraftDashboardV3Controller;
 import gg.modl.backend.dashboard.dto.response.MinecraftDashboardStatsResponse;
 import gg.modl.backend.dashboard.service.DashboardService;
 import gg.modl.backend.infrastructure.exception.GlobalExceptionHandler;
@@ -30,20 +29,23 @@ import gg.modl.proto.modl.v1.ApiError;
 import gg.modl.proto.modl.v1.MinecraftDashboardResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+@ExtendWith(MockitoExtension.class)
 class MinecraftDashboardV3ControllerTest {
-    private DashboardService dashboardService;
+    @Mock private DashboardService dashboardService;
     private MockMvc v3MockMvc;
     private MockMvc v1MockMvc;
     private Server server;
 
     @BeforeEach
     void setUp() {
-        dashboardService = mock(DashboardService.class);
         server = new Server("Demo", "demo", "server_demo", "admin@example.com", true, ServerPlan.FREE);
 
         v3MockMvc = MockMvcBuilders.standaloneSetup(new MinecraftDashboardV3Controller(dashboardService))

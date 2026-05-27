@@ -28,7 +28,7 @@ public class ProtoBinaryHttpMessageConverter extends AbstractHttpMessageConverte
     protected Message readInternal(@NonNull Class<? extends Message> clazz,
                                    @NonNull HttpInputMessage inputMessage) throws IOException {
         try {
-            Message defaultInstance = getDefaultInstance(clazz);
+            Message defaultInstance = ProtoMessageReflection.getDefaultInstance(clazz);
             return defaultInstance.getParserForType().parseFrom(inputMessage.getBody());
         } catch (Exception e) {
             throw new HttpMessageNotReadableException("Failed to parse binary protobuf: " + e.getMessage(), e, inputMessage);
@@ -42,14 +42,6 @@ public class ProtoBinaryHttpMessageConverter extends AbstractHttpMessageConverte
             message.writeTo(outputMessage.getBody());
         } catch (Exception e) {
             throw new HttpMessageNotWritableException("Failed to write binary protobuf: " + e.getMessage(), e);
-        }
-    }
-
-    private static Message getDefaultInstance(Class<? extends Message> clazz) {
-        try {
-            return (Message) clazz.getMethod("getDefaultInstance").invoke(null);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalArgumentException("Cannot get default instance for " + clazz.getName(), e);
         }
     }
 }

@@ -9,6 +9,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -19,17 +21,17 @@ public class QuickResponseSettingsService {
     private final ObjectMapper objectMapper;
     private static final String SETTINGS_TYPE_QUICK_RESPONSES = "quickResponses";
 
-    public QuickResponseSettings getQuickResponseSettings(Server server) {
+    public @NotNull QuickResponseSettings getQuickResponseSettings(@NotNull Server server) {
         return getQuickResponseSettingsState(server).data();
     }
 
-    public VersionedSettings<QuickResponseSettings> getQuickResponseSettingsState(Server server) {
+    public @NotNull VersionedSettings<QuickResponseSettings> getQuickResponseSettingsState(@NotNull Server server) {
         SettingsDocumentService.RawSettingsState state = settingsDocumentService.getRawState(server, SETTINGS_TYPE_QUICK_RESPONSES);
         QuickResponseSettings settings = mapToQuickResponseSettings(state.data());
         return new VersionedSettings<>(settings, state.version(), state.updatedAt());
     }
 
-    public QuickResponseSettings.Action findAction(QuickResponseSettings settings, String categoryId, String actionId) {
+    public @Nullable QuickResponseSettings.Action findAction(@Nullable QuickResponseSettings settings, @Nullable String categoryId, @Nullable String actionId) {
         if (settings == null || settings.getCategories() == null || categoryId == null || actionId == null) {
             return null;
         }

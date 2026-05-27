@@ -3,7 +3,6 @@ package gg.modl.backend.minecraft;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -22,7 +21,7 @@ import gg.modl.backend.infrastructure.rest.RESTMappingV3;
 import gg.modl.backend.infrastructure.rest.RequestAttribute;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.server.data.ServerPlan;
-import gg.modl.backend.ticket.controller.MinecraftReportsV3Controller;
+import gg.modl.backend.ticket.controller.v3.MinecraftReportsV3Controller;
 import gg.modl.backend.ticket.data.Ticket;
 import gg.modl.backend.ticket.service.MinecraftTicketService;
 import gg.modl.proto.modl.v1.ApiError;
@@ -37,20 +36,23 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+@ExtendWith(MockitoExtension.class)
 class MinecraftReportsV3ControllerTest {
     private static final String PLAYER_UUID = "11111111-2222-3333-4444-555555555555";
 
-    private MinecraftTicketService ticketService;
+    @Mock private MinecraftTicketService ticketService;
     private MockMvc mockMvc;
     private Server server;
 
     @BeforeEach
     void setUp() {
-        ticketService = mock(MinecraftTicketService.class);
         server = new Server("Demo", "demo", "server_demo", "admin@example.com", true, ServerPlan.FREE);
 
         mockMvc = MockMvcBuilders.standaloneSetup(new MinecraftReportsV3Controller(ticketService))

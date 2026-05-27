@@ -1,29 +1,29 @@
 package gg.modl.backend.ticket.util;
 
-import java.util.ArrayList;
+import gg.modl.backend.infrastructure.util.UuidUtil;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import lombok.experimental.UtilityClass;
+import org.jetbrains.annotations.Nullable;
 
-public final class TicketAssigneeUtil {
+@UtilityClass
+public class TicketAssigneeUtil {
     public static final int MAX_ASSIGNEES = 20;
 
-    private TicketAssigneeUtil() {
+    @Nullable
+    public static String normalizeUuid(@Nullable String value) {
+        return UuidUtil.normalizeUuid(value);
     }
 
     public static List<String> normalizeCsv(String value) {
         if (value == null || value.isBlank()) {
             return List.of();
         }
-
-        String[] split = value.split(",");
-        List<String> items = new ArrayList<>(split.length);
-        for (String item : split) {
-            items.add(item);
-        }
-        return normalizeCollection(items);
+        return normalizeCollection(Arrays.asList(value.split(",")));
     }
 
     public static List<String> normalizeCollection(Collection<String> values) {
@@ -50,7 +50,8 @@ public final class TicketAssigneeUtil {
         return List.copyOf(normalized);
     }
 
-    public static String normalizeSingle(String value) {
+    @Nullable
+    public static String normalizeSingle(@Nullable String value) {
         if (value == null) {
             return null;
         }

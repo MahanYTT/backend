@@ -2,7 +2,6 @@ package gg.modl.backend.database.mongo.repository;
 
 import gg.modl.backend.admin.data.SystemLog;
 import gg.modl.backend.database.mongo.AbstractGlobalMongoRepository;
-
 import gg.modl.backend.database.mongo.TenantMongoAccess;
 import gg.modl.backend.database.mongo.fields.SystemLogFields;
 import java.util.ArrayList;

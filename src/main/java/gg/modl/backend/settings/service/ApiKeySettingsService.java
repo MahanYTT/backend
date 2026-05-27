@@ -1,10 +1,11 @@
 package gg.modl.backend.settings.service;
 
 import gg.modl.backend.database.mongo.repository.ServerMongoRepository;
+import gg.modl.backend.infrastructure.util.IdGenerator;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.settings.data.Settings;
-import gg.modl.backend.infrastructure.util.IdGenerator;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -69,7 +70,7 @@ public class ApiKeySettingsService {
     }
 
     private String getFieldNameForType(String keyType) {
-        return switch (keyType.toLowerCase()) {
+        return switch (keyType.toLowerCase(Locale.ROOT)) {
             case "ticket" -> "ticket_api_key";
             case "minecraft" -> "minecraft_api_key";
             default -> "api_key";

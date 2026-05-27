@@ -2,8 +2,10 @@ package gg.modl.backend.player.service;
 
 import gg.modl.backend.database.mongo.repository.PlayerMongoRepository;
 import gg.modl.backend.database.mongo.repository.PunishmentMongoRepository;
-import gg.modl.backend.infrastructure.exception.ResourceNotFoundException;
 import gg.modl.backend.database.mongo.repository.StaffMongoRepository;
+import gg.modl.backend.infrastructure.exception.ResourceNotFoundException;
+import gg.modl.backend.infrastructure.util.IdGenerator;
+import gg.modl.backend.infrastructure.util.UuidUtil;
 import gg.modl.backend.player.data.Player;
 import gg.modl.backend.player.data.punishment.Punishment;
 import gg.modl.backend.player.data.punishment.PunishmentData;
@@ -25,7 +27,6 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import gg.modl.backend.infrastructure.util.IdGenerator;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -293,18 +294,18 @@ public class PunishmentMutationService {
 
     public void linkAppealToPunishment(Server server, String playerUuid, String punishmentId,
                                        String appealId, PunishmentNote note) {
-        punishmentRepository.linkAppealToPunishment(server, normalizeUuid(playerUuid), punishmentId, appealId, note);
+        punishmentRepository.linkAppealToPunishment(server, UuidUtil.normalizeUuid(playerUuid), punishmentId, appealId, note);
     }
 
     public void addPunishmentNote(Server server, String playerUuid, String punishmentId,
                                   PunishmentNote note, Map<String, Object> dataUpdates) {
-        punishmentRepository.addPunishmentNote(server, normalizeUuid(playerUuid), punishmentId, note, dataUpdates);
+        punishmentRepository.addPunishmentNote(server, UuidUtil.normalizeUuid(playerUuid), punishmentId, note, dataUpdates);
     }
 
     public void applyAppealApproval(Server server, String playerUuid, String punishmentId,
                                     PunishmentModification modification, PunishmentNote note,
                                     String appealOutcome, String appealTicketId) {
-        punishmentRepository.applyAppealApproval(server, normalizeUuid(playerUuid), punishmentId,
+        punishmentRepository.applyAppealApproval(server, UuidUtil.normalizeUuid(playerUuid), punishmentId,
             modification, note, appealOutcome, appealTicketId);
     }
 
@@ -333,7 +334,4 @@ public class PunishmentMutationService {
         }
     }
 
-    private static String normalizeUuid(String value) {
-        return value == null ? null : value.toLowerCase(Locale.ROOT);
-    }
 }

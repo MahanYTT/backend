@@ -1,6 +1,9 @@
 package gg.modl.backend.ticket.service;
 
 import gg.modl.backend.database.mongo.repository.TicketMongoRepository;
+import gg.modl.backend.infrastructure.util.UuidUtil;
+import gg.modl.backend.realtime.dispatch.RealtimeEventDispatcher;
+import gg.modl.backend.realtime.dispatch.RealtimeOutboundEvent;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.ticket.data.AppealWorkflowStatus;
 import gg.modl.backend.ticket.data.Ticket;
@@ -14,6 +17,9 @@ import gg.modl.backend.ticket.dto.request.MinecraftClaimTicketRequest;
 import gg.modl.backend.ticket.dto.request.MinecraftCreateTicketRequest;
 import gg.modl.backend.ticket.dto.request.ResolveReportRequest;
 import gg.modl.backend.ticket.util.TicketAssigneeUtil;
+import gg.modl.proto.modl.v1.RealtimeEnvelope;
+import gg.modl.proto.modl.v1.TicketChangedEvent;
+import gg.modl.proto.modl.v1.Topic;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -23,14 +29,17 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MinecraftTicketService {
     private final TicketMongoRepository ticketRepository;
     private final TicketNotificationService notificationService;
     private final TicketIdGenerator ticketIdGenerator;
+    private final RealtimeEventDispatcher realtimeEventDispatcher;
 
     public Ticket createMinecraftTicket(Server server, MinecraftCreateTicketRequest request) {
         return createMinecraftTicketInternal(server, request, false);
@@ -65,10 +74,10 @@ public class MinecraftTicketService {
             .subject(request.subject())
             .status(unfinished ? TicketStatus.UNFINISHED : TicketStatus.OPEN)
             .appealWorkflowStatus(ticketCategory.isAppeal() ? AppealWorkflowStatus.OPEN : null)
-            .creatorUuid(normalizeUuid(request.creatorUuid()))
+            .creatorUuid(UuidUtil.normalizeUuid(request.creatorUuid()))
             .creatorName(request.creatorName())
             .reportedPlayer(request.reportedPlayerName())
-            .reportedPlayerUuid(normalizeUuid(request.reportedPlayerUuid()))
+            .reportedPlayerUuid(UuidUtil.normalizeUuid(request.reportedPlayerUuid()))
             .tags(request.tags() != null ? new ArrayList<>(request.tags()) : new ArrayList<>())
             .replies(new ArrayList<>())
             .notes(new ArrayList<>())
@@ -86,15 +95,17 @@ public class MinecraftTicketService {
                 .id(UUID.randomUUID().toString())
                 .content(request.description())
                 .name(request.creatorName() != null ? request.creatorName() : "Player")
-                .creatorIdentifier(normalizeUuid(request.creatorUuid()))
+                .creatorIdentifier(UuidUtil.normalizeUuid(request.creatorUuid()))
                 .staff(false)
                 .type("user")
                 .created(now)
                 .build();
-            ticket.getReplies().add(initialReply);
+            ticket.addReply(initialReply);
         }
 
-        return ticketRepository.saveEntity(server, ticket);
+        Ticket saved = ticketRepository.saveEntity(server, ticket);
+        publishTicketChanged(server, saved.getId(), "minecraft_created");
+        return saved;
     }
 
     public Ticket createUnfinishedMinecraftTicket(Server server, MinecraftCreateTicketRequest request) {
@@ -110,7 +121,7 @@ public class MinecraftTicketService {
     }
 
     public List<Ticket> getMinecraftTicketsByCreator(Server server, String creatorUuid, int limit) {
-        return ticketRepository.findRecentByCreator(server, normalizeUuid(creatorUuid), limit);
+        return ticketRepository.findRecentByCreator(server, UuidUtil.normalizeUuid(creatorUuid), limit);
     }
 
     public MinecraftTicketClaimResult claimMinecraftTicket(Server server, String ticketId, MinecraftClaimTicketRequest request) {
@@ -124,7 +135,7 @@ public class MinecraftTicketService {
             return new MinecraftTicketClaimResult(MinecraftTicketClaimStatus.ALREADY_LINKED, ticket);
         }
         String oldCreatorName = ticket.getCreatorName();
-        ticket.setCreatorUuid(normalizeUuid(request.playerUuid()));
+        ticket.setCreatorUuid(UuidUtil.normalizeUuid(request.playerUuid()));
         ticket.setCreatorName(request.playerName());
         ticket.setUpdatedAt(new Date());
 
@@ -140,6 +151,7 @@ public class MinecraftTicketService {
         }
 
         Ticket saved = ticketRepository.saveEntity(server, ticket);
+        publishTicketChanged(server, saved.getId(), "minecraft_claimed");
         return new MinecraftTicketClaimResult(MinecraftTicketClaimStatus.SUCCESS, saved);
     }
 
@@ -181,7 +193,7 @@ public class MinecraftTicketService {
     }
 
     public List<Map<String, Object>> getMinecraftReportsForPlayer(Server server, String playerUuid, String status, int limit) {
-        return ticketRepository.findReports(server, status, normalizeUuid(playerUuid), limit, false)
+        return ticketRepository.findReports(server, status, UuidUtil.normalizeUuid(playerUuid), limit, false)
             .stream()
             .map(this::toMinecraftReport)
             .toList();
@@ -204,7 +216,7 @@ public class MinecraftTicketService {
             .action("close")
             .build();
 
-        ticket.ensureReplies().add(reply);
+        ticket.addReply(reply);
         ticket.applyLifecycleStatus(TicketStatus.CLOSED);
         ticket.setUpdatedAt(now);
 
@@ -219,6 +231,7 @@ public class MinecraftTicketService {
 
         Ticket saved = ticketRepository.saveEntity(server, ticket);
         notificationService.notifyTicketReply(server, saved, reply);
+        publishTicketChanged(server, saved.getId(), "minecraft_dismissed");
         return new ReportOperationResult(ReportOperationStatus.SUCCESS, saved);
     }
 
@@ -255,7 +268,7 @@ public class MinecraftTicketService {
             .action("close")
             .build();
 
-        ticket.ensureReplies().add(reply);
+        ticket.addReply(reply);
         ticket.applyLifecycleStatus(TicketStatus.CLOSED);
         ticket.setUpdatedAt(now);
 
@@ -273,6 +286,7 @@ public class MinecraftTicketService {
 
         Ticket saved = ticketRepository.saveEntity(server, ticket);
         notificationService.notifyTicketReply(server, saved, reply);
+        publishTicketChanged(server, saved.getId(), "minecraft_resolved");
         return new ReportOperationResult(ReportOperationStatus.SUCCESS, saved);
     }
 
@@ -296,6 +310,7 @@ public class MinecraftTicketService {
                              : TicketAssigneeUtil.normalizeCsv(request.assignee()));
         ticket.setUpdatedAt(new Date());
         Ticket saved = ticketRepository.saveEntity(server, ticket);
+        publishTicketChanged(server, saved.getId(), "minecraft_assigned");
         return new ReportOperationResult(ReportOperationStatus.SUCCESS, saved);
     }
 
@@ -395,7 +410,23 @@ public class MinecraftTicketService {
 
     public record ReportOperationResult(ReportOperationStatus status, Ticket ticket) {}
 
-    private static String normalizeUuid(String value) {
-        return value == null ? null : value.toLowerCase(java.util.Locale.ROOT);
+    private void publishTicketChanged(Server server, String ticketId, String changeKind) {
+        try {
+            TicketChangedEvent.Builder payload = TicketChangedEvent.newBuilder().setTicketId(ticketId);
+            if (changeKind != null) {
+                payload.setChangeKind(changeKind);
+            }
+            realtimeEventDispatcher.publish(new RealtimeOutboundEvent(
+                server.getId(),
+                Topic.TOPIC_PANEL_TICKETS,
+                RealtimeEnvelope.newBuilder()
+                    .setEventId(server.getId() + "::ticket::" + ticketId + "::" + System.nanoTime())
+                    .setTicketChanged(payload)
+                    .build()
+            ));
+        } catch (RuntimeException ex) {
+            log.warn("realtime publish failed for ticket {} change {}", ticketId, changeKind, ex);
+        }
     }
+
 }

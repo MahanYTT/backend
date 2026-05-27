@@ -22,10 +22,13 @@ import gg.modl.proto.modl.v1.ReconnectReason;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.socket.BinaryMessage;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.WebSocketSession;
 
+@ExtendWith(MockitoExtension.class)
 class RealtimeDeployDrainManagerTest {
 
     @Test

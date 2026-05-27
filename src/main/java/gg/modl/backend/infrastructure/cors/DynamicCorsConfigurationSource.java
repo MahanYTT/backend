@@ -69,14 +69,14 @@ public class DynamicCorsConfigurationSource implements CorsConfigurationSource {
         return config;
     }
 
-    private boolean isAdminPath(String path) {
+    private static boolean isAdminPath(String path) {
         return path != null && (
             path.startsWith(RESTMappingV1.PREFIX_ADMIN + "/")
             || path.equals(RESTMappingV1.PREFIX_ADMIN)
         );
     }
 
-    private boolean isReplayLitePath(String path) {
+    private static boolean isReplayLitePath(String path) {
         return path != null && (
             path.startsWith(RESTMappingV1.PREFIX_REPLAY_LITE + "/")
             || path.startsWith(RESTMappingV1.PREFIX_PUBLIC + "/replay-lite/")

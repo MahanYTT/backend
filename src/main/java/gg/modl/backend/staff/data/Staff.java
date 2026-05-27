@@ -9,15 +9,16 @@ import java.util.Date;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.annotation.Id;
-
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 @Document
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -41,7 +42,6 @@ public class Staff {
 
     @Field("role")
     private String role;
-
 
     @Field("assignedMinecraftUuid")
     private String assignedMinecraftUuid;
@@ -92,7 +92,8 @@ public class Staff {
     @Field("updatedAt")
     private Date updatedAt;
 
-    @Data
+    @Getter
+    @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
@@ -109,7 +110,8 @@ public class Staff {
         private boolean active = true;
     }
 
-    @Data
+    @Getter
+    @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
@@ -126,7 +128,8 @@ public class Staff {
         private NotificationSettings pushNotifications;
     }
 
-    @Data
+    @Getter
+    @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder

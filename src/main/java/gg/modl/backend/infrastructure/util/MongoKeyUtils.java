@@ -14,12 +14,11 @@ public final class MongoKeyUtils {
      * Rejecting invalid keys is intentional: lossy replacement can hide
      * collisions and still misses Mongo operator-looking fields.
      */
-    @SuppressWarnings("unchecked")
     public static Map<String, Object> sanitizeKeys(Map<String, Object> map) {
-        if (map == null) {
-            return null;
-        }
         Map<String, Object> sanitized = new LinkedHashMap<>();
+        if (map == null) {
+            return sanitized;
+        }
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             validateKey(entry.getKey());
             sanitized.put(entry.getKey(), sanitizeValue(entry.getValue()));

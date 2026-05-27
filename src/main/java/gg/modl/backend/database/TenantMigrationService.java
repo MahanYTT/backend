@@ -66,10 +66,10 @@ public class TenantMigrationService {
     }
 
     void applyMigrationsForTenant(MongoTemplate template) {
-        runMigrationOnce(template, LOWERCASE_TICKET_UUIDS_MIGRATION_ID, this::lowercaseTicketUuids);
+        runMigrationOnce(template, LOWERCASE_TICKET_UUIDS_MIGRATION_ID, TenantMigrationService::lowercaseTicketUuids);
     }
 
-    private void runMigrationOnce(MongoTemplate template, String migrationId, MigrationStep step) {
+    private static void runMigrationOnce(MongoTemplate template, String migrationId, MigrationStep step) {
         if (isMigrationApplied(template, migrationId)) {
             return;
         }
@@ -77,14 +77,14 @@ public class TenantMigrationService {
         markMigrationApplied(template, migrationId);
     }
 
-    private boolean isMigrationApplied(MongoTemplate template, String migrationId) {
+    private static boolean isMigrationApplied(MongoTemplate template, String migrationId) {
         Document marker = template.getCollection(CollectionName.TENANT_MIGRATIONS)
             .find(Filters.eq("_id", migrationId))
             .first();
         return marker != null;
     }
 
-    private void markMigrationApplied(MongoTemplate template, String migrationId) {
+    private static void markMigrationApplied(MongoTemplate template, String migrationId) {
         template.getCollection(CollectionName.TENANT_MIGRATIONS).updateOne(
             Filters.eq("_id", migrationId),
             Updates.set("appliedAt", new Date()),
@@ -92,7 +92,7 @@ public class TenantMigrationService {
         );
     }
 
-    private void lowercaseTicketUuids(MongoTemplate template) {
+    private static void lowercaseTicketUuids(MongoTemplate template) {
         MongoCollection<Document> tickets = template.getCollection(CollectionName.TICKETS);
 
         Bson filter = Filters.or(

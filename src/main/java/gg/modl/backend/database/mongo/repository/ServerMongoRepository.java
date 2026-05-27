@@ -3,7 +3,6 @@ package gg.modl.backend.database.mongo.repository;
 import com.mongodb.client.result.UpdateResult;
 import gg.modl.backend.database.CollectionName;
 import gg.modl.backend.database.mongo.AbstractGlobalMongoRepository;
-
 import gg.modl.backend.database.mongo.TenantMongoAccess;
 import gg.modl.backend.database.mongo.fields.ServerFields;
 import gg.modl.backend.server.data.CustomDomainStatus;
@@ -628,6 +627,7 @@ public class ServerMongoRepository extends AbstractGlobalMongoRepository<Server>
             new Update()
                 .set(ServerFields.CDN_USAGE_CURRENT_PERIOD, 0.0)
                 .set(ServerFields.AI_REQUESTS_CURRENT_PERIOD, 0L)
+                .unset(ServerFields.USAGE_RESET_AT)
         );
     }
 

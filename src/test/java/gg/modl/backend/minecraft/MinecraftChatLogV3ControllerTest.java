@@ -3,7 +3,6 @@ package gg.modl.backend.minecraft;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -18,7 +17,7 @@ import gg.modl.backend.infrastructure.proto.ProtoValidationAdvice;
 import gg.modl.backend.infrastructure.proto.ProtobufMediaTypes;
 import gg.modl.backend.infrastructure.rest.RequestAttribute;
 import gg.modl.backend.infrastructure.rest.RESTMappingV3;
-import gg.modl.backend.player.controller.MinecraftChatLogV3Controller;
+import gg.modl.backend.player.controller.v3.MinecraftChatLogV3Controller;
 import gg.modl.backend.player.service.MinecraftChatLogService;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.server.data.ServerPlan;
@@ -31,20 +30,23 @@ import gg.modl.proto.modl.v1.SimpleResponse;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+@ExtendWith(MockitoExtension.class)
 class MinecraftChatLogV3ControllerTest {
-    private MinecraftChatLogService minecraftChatLogService;
+    @Mock private MinecraftChatLogService minecraftChatLogService;
     private MockMvc mockMvc;
     private Server server;
 
     @BeforeEach
     void setUp() {
-        minecraftChatLogService = mock(MinecraftChatLogService.class);
         server = new Server("Demo", "demo", "server_demo", "admin@example.com", true, ServerPlan.FREE);
 
         mockMvc = MockMvcBuilders.standaloneSetup(new MinecraftChatLogV3Controller(minecraftChatLogService))

@@ -2,12 +2,13 @@ package gg.modl.backend.infrastructure.proto;
 
 import build.buf.protovalidate.ValidationResult;
 import build.buf.validate.Violation;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.Getter;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
+@Getter
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public class ProtoValidationException extends RuntimeException {
 
@@ -16,10 +17,6 @@ public class ProtoValidationException extends RuntimeException {
     public ProtoValidationException(ValidationResult result) {
         super(formatViolations(result.getViolations()));
         this.violations = result.getViolations();
-    }
-
-    public List<Violation> getViolations() {
-        return violations;
     }
 
     private static String formatViolations(List<Violation> violationList) {

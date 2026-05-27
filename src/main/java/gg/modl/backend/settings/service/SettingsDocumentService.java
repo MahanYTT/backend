@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -37,7 +38,7 @@ public class SettingsDocumentService {
                 Settings inserted = new Settings(null, type, normalizedData, expectedVersion + 1, now);
                 settingsRepository.saveEntity(server, inserted);
                 return new RawSettingsState(normalizedData, expectedVersion + 1, now, true);
-            } catch (org.springframework.dao.DuplicateKeyException duplicateKeyException) {
+            } catch (DuplicateKeyException duplicateKeyException) {
                 throwConflict(getRawState(server, type).version());
             }
         }

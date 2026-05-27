@@ -1,6 +1,7 @@
 package gg.modl.backend.settings.data;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.Locale;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record DurationDetail(
@@ -9,24 +10,20 @@ public record DurationDetail(
     String type
 ) {
     public long toMilliseconds() {
-        // Handle permanent punishments
         if (isPermanent()) {
             return -1L;
         }
-
-        // Handle null or empty unit - shouldn't happen but be defensive
         if (unit == null || unit.isEmpty()) {
-            return -1L; // Treat as permanent if unit is missing
+            return -1L;
         }
-
-        return switch (unit.toLowerCase()) {
+        return switch (unit.toLowerCase(Locale.ROOT)) {
             case "seconds", "second" -> value * 1000L;
             case "minutes", "minute" -> value * 60L * 1000L;
             case "hours", "hour" -> value * 60L * 60L * 1000L;
             case "days", "day" -> value * 24L * 60L * 60L * 1000L;
             case "weeks", "week" -> value * 7L * 24L * 60L * 60L * 1000L;
             case "months", "month" -> value * 30L * 24L * 60L * 60L * 1000L;
-            default -> -1L; // Treat unknown unit as permanent rather than instant
+            default -> -1L;
         };
     }
 

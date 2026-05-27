@@ -30,6 +30,7 @@ public class PanelPermissionFilter extends OncePerRequestFilter {
         new PermissionMapping(RESTMappingV1.PANEL_ROLES, "admin.staff.manage.roles"),
         new PermissionMapping(RESTMappingV1.PANEL_PLAYERS, "punishment.modify"),
         new PermissionMapping(RESTMappingV1.PANEL_DASHBOARD, "admin.audit.view.dashboard"),
+        new PermissionMapping(RESTMappingV1.PREFIX_PANEL + "/stats", "admin.audit.view.dashboard"),
         new PermissionMapping(RESTMappingV1.PANEL_ANALYTICS, "admin.audit.view.analytics"),
         new PermissionMapping(RESTMappingV1.PANEL_AUDIT, "admin.audit.view.logs"),
         new PermissionMapping(RESTMappingV1.PANEL_LOGS, "admin.audit.view.logs"),
@@ -110,13 +111,13 @@ public class PanelPermissionFilter extends OncePerRequestFilter {
                && permissionService.hasPermission(server, role, "ticket.reply.all");
     }
 
-    private boolean isAppealReplyWrite(String path, String method) {
+    private static boolean isAppealReplyWrite(String path, String method) {
         return "POST".equalsIgnoreCase(method)
                && startsWithEndpoint(path, RESTMappingV1.PANEL_APPEALS)
                && path.endsWith("/replies");
     }
 
-    private boolean isPanelDashboardAlertsRead(HttpServletRequest request) {
+    private static boolean isPanelDashboardAlertsRead(HttpServletRequest request) {
         return isReadOnly(request.getMethod())
                && startsWithEndpoint(request.getRequestURI(), RESTMappingV1.PANEL_DASHBOARD + "/alerts");
     }
@@ -163,11 +164,11 @@ public class PanelPermissionFilter extends OncePerRequestFilter {
         return isReadOnly(method) ? "admin.settings.view" : "admin.settings.modify";
     }
 
-    private boolean isReadOnly(String method) {
+    private static boolean isReadOnly(String method) {
         return "GET".equalsIgnoreCase(method) || "HEAD".equalsIgnoreCase(method);
     }
 
-    private boolean startsWithEndpoint(String path, String endpoint) {
+    private static boolean startsWithEndpoint(String path, String endpoint) {
         return path.equals(endpoint) || path.startsWith(endpoint + "/");
     }
 

@@ -5,12 +5,14 @@ import gg.modl.backend.email.EmailAddressUtil;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
-@Data
+@Getter
+@Setter
 @Document(collection = "admin_users")
 @GenerateMongoFields
 public class AdminUser {

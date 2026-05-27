@@ -28,8 +28,8 @@ public class SystemAlertService {
     }
 
     public SystemAlert createAlert(CreateSystemAlertRequest request, String createdBy) {
-        Date now = new Date();
-        SystemAlert alert = SystemAlert.builder()
+        final Date now = new Date();
+        final SystemAlert alert = SystemAlert.builder()
             .message(request.message().trim())
             .severity(request.severity() != null ? request.severity() : SystemAlertSeverity.BASIC)
             .audience(request.audience() != null ? request.audience() : SystemAlertAudience.ALL_PANEL_USERS)
@@ -43,7 +43,7 @@ public class SystemAlertService {
     }
 
     public Optional<SystemAlert> updateAlert(String id, UpdateSystemAlertRequest request, String updatedBy) {
-        String message = request.message() != null ? request.message().trim() : null;
+        final String message = request.message() != null ? request.message().trim() : null;
         if (message != null && message.isEmpty()) {
             throw new IllegalArgumentException("Alert message cannot be blank");
         }

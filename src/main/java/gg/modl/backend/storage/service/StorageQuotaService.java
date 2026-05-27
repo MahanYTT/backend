@@ -2,10 +2,10 @@ package gg.modl.backend.storage.service;
 
 import gg.modl.backend.billing.service.UsageTrackingService;
 import gg.modl.backend.database.mongo.repository.ServerMongoRepository;
+import gg.modl.backend.infrastructure.util.ByteFormatUtil;
 import gg.modl.backend.server.data.Server;
 import gg.modl.backend.server.data.ServerPlan;
 import gg.modl.backend.storage.dto.response.StorageQuotaResponse;
-import gg.modl.backend.infrastructure.util.ByteFormatUtil;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -125,5 +125,4 @@ public class StorageQuotaService {
         serverRepository.setStorageUsed(server.getId(), liveUsed);
         server.setStorageUsedBytes(liveUsed);
     }
-
 }

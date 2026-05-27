@@ -14,7 +14,10 @@ import gg.modl.backend.server.service.ServerMutationHelper;
 import java.util.Date;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class StripeWebhookServiceTest {
     @Test
     void duplicateEventIdIsIgnoredBeforeBillingMutation() {

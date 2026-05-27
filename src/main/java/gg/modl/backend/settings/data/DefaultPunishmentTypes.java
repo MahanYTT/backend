@@ -2,9 +2,10 @@ package gg.modl.backend.settings.data;
 
 import java.util.ArrayList;
 import java.util.List;
+import lombok.experimental.UtilityClass;
 
-public final class DefaultPunishmentTypes {
-    private DefaultPunishmentTypes() {}
+@UtilityClass
+public class DefaultPunishmentTypes {
 
     public static List<PunishmentType> getAll() {
         List<PunishmentType> types = new ArrayList<>();
